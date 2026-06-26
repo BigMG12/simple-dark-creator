@@ -25,17 +25,17 @@ function Stars({ value, max = 5, className }: { value: number; max?: number; cla
 export default function Drills() {
   const navigate = useNavigate();
   const [category, setCategory] = useState<"Wszystkie" | DrillCategory>("Wszystkie");
-  const [difficulty, setDifficulty] = useState<number | null>(null);
+  const [difficulties, setDifficulties] = useState<number[]>([]);
 
   const featured = useMemo(() => getFeaturedDrill(), []);
 
   const drills = useMemo(() => {
     return DRILLS.filter((d) => {
       if (category !== "Wszystkie" && d.category !== category) return false;
-      if (difficulty !== null && d.difficulty !== difficulty) return false;
+      if (difficulties.length > 0 && !difficulties.includes(d.difficulty)) return false;
       return true;
     });
-  }, [category, difficulty]);
+  }, [category, difficulties]);
 
   return (
     <AppShell>
@@ -119,13 +119,18 @@ export default function Drills() {
             </span>
             <div className="inline-flex items-center gap-1 p-1 rounded-full border border-border bg-surface">
               {[1, 2, 3, 4, 5].map((n) => {
-                const active = difficulty === n;
+                const active = difficulties.includes(n);
                 return (
                   <button
                     key={n}
                     type="button"
                     aria-label={`Trudność ${n}`}
-                    onClick={() => setDifficulty(active ? null : n)}
+                    aria-pressed={active}
+                    onClick={() =>
+                      setDifficulties((prev) =>
+                        prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n].sort(),
+                      )
+                    }
                     className={cn(
                       "h-7 w-7 rounded-full flex items-center justify-center transition-all",
                       active
@@ -145,10 +150,10 @@ export default function Drills() {
                 );
               })}
             </div>
-            {difficulty !== null && (
+            {difficulties.length > 0 && (
               <button
                 type="button"
-                onClick={() => setDifficulty(null)}
+                onClick={() => setDifficulties([])}
                 className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground"
               >
                 Wyczyść
@@ -168,7 +173,7 @@ export default function Drills() {
               size="sm"
               onClick={() => {
                 setCategory("Wszystkie");
-                setDifficulty(null);
+                setDifficulties([]);
               }}
             >
               Resetuj filtry

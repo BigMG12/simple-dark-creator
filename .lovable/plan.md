@@ -1,23 +1,27 @@
 ## Cel
-Dodać pozycję „Zadania" do lewego paska nawigacji (i mobilnego bottom nav), prowadzącą do dedykowanego ekranu z listą zadań dnia (obecnie sekcja TasksSection żyje tylko na Dashboard).
+1. Filtr trudności w `/drills` z wieloma gwiazdkami zaznaczalnymi naraz (jak na screenie + przycisk "Wyczyść").
+2. Naprawa nawigacji: po wejściu w drill → nagrywanie i cofnięciu, użytkownik wraca do widoku ćwiczenia (a nie ląduje znowu w trybie nagrywania).
 
 ## Zmiany
 
-1. **Nowa strona `src/pages/Tasks.tsx`**
-   - Tło i nagłówek w stylu reszty appki (jak `/drills`): mały eyebrow „Codziennie", H1 „Twoje Zadania", krótki podtytuł.
-   - Renderuje istniejący `TasksSection` (re-use bez duplikacji logiki).
-   - Pod spodem opcjonalna mała wskazówka, że zadania resetują się o północy.
+### 1. `src/pages/Drills.tsx` — multi-select trudności
+- `difficulty` zmienia typ z `number | null` na `Set<number>` (lub `number[]`).
+- Klik w gwiazdkę przełącza obecność wartości w secie (toggle).
+- Filtr przepuszcza drill, gdy `difficulty.size === 0` lub `difficulty.has(d.difficulty)`.
+- Przycisk "Wyczyść" pojawia się gdy `size > 0` i resetuje set.
+- Wizualnie zachowany obecny styl pigułki (czarne tło, złota gwiazdka aktywna) — pasuje do screena. Każda kliknięta gwiazdka pozostaje wyróżniona niezależnie.
 
-2. **`src/App.tsx`**
-   - Dodać route: `<Route path="/tasks" element={<Tasks />} />` w sekcji chronionej.
+### 2. Naprawa nawigacji drill → nagrywanie
+Problem: `DrillDetail` nawiguje do `/record?drillId=X` (push), a `Record.tsx` `replace`uje to na `/record/prep`. Po cofnięciu z prep użytkownik ląduje na `/drills/:id` poprawnie — ale po wyjściu z `RecordLive` (przycisk Exit → `navigate("/record")`) i kolejnym cofnięciu/forward sesja `recordingSession` zostaje, więc kolejne wejścia automatycznie wpadają w prep.
 
-3. **`src/components/nav/AppNav.tsx`**
-   - Dodać do `ITEMS` pozycję `{ to: "/tasks", label: "Zadania", icon: ListChecks }` zaraz po „Start".
-   - Mobile bottom nav: zmienić `grid-cols-7` → `grid-cols-8`, żeby pomieścić dodatkową ikonę.
+Rozwiązanie:
+- W `DrillDetail.tsx` zamiast `navigate('/record?drillId=...')` ustawić `recordingSession` lokalnie (jak robi `Record.tsx` w useEffect z drillId) i przejść bezpośrednio do `/record/prep` zwykłym pushem. Eliminuje pośredni wpis `/record?drillId` w historii.
+- W `RecordPrep.tsx` i `RecordLive.tsx` przycisk wyjścia / X nawiguje warunkowo: jeśli `session.source === "drill"` (nowe pole) → `navigate('/drills/'+session.drillId)`, w przeciwnym razie `/record`. Użycie `replace: true` przy wyjściu, żeby nie zostawiać śmieci w historii.
+- Po wyjściu z nagrywania (Exit) wyczyścić `recordingSession`, żeby kolejne wejście w `/record/prep` bez świeżych danych pokazało redirect do `/record` (już istniejący guard).
 
-4. **`src/pages/Dashboard.tsx`** — bez zmian (TasksSection zostaje też na Dashboard jako szybki podgląd).
+### 3. Typ `recordingSession`
+Dodać opcjonalne pola: `source?: "drill" | "arena" | "challenge"`, `drillId?: string` — używane do decyzji o powrocie.
 
-## Detale techniczne
-- Ikona: `ListChecks` z `lucide-react` (spójna z resztą nawigacji).
-- Strona Tasks używa tego samego `max-w-*` containera co `/drills` dla spójności.
-- Nic nie ruszamy w logice `dailyTasks` ani w `TasksSection` — tylko opakowujemy.
+## Out of scope
+- Brak zmian w logice nagrywania, uploadzie, edge functions.
+- Brak zmian wizualnych poza filtrem trudności.

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/nav/AppShell";
 import { getDrillById, type Drill } from "@/data/drills";
+import { recordingSession } from "@/hooks/use-recording-session";
 
 function Stars({ value, max = 5 }: { value: number; max?: number }) {
   return (
@@ -148,7 +149,22 @@ export default function DrillDetail() {
             variant="fire"
             size="lg"
             className="flex-1"
-            onClick={() => navigate(`/record?drillId=${drill.id}`)}
+            onClick={() => {
+              const text =
+                drill.contentKind === "words"
+                  ? `${drill.instructions} Słowa: ${(drill.wordList ?? []).join(", ")}`
+                  : drill.content;
+              recordingSession.clear();
+              recordingSession.set({
+                topic: text,
+                duration: 60,
+                mode: "custom",
+                speaker: `Drill: ${drill.title}`,
+                source: "drill",
+                drillId: drill.id,
+              });
+              navigate("/record/prep");
+            }}
           >
             <Flame />
             Rozpocznij ćwiczenie
