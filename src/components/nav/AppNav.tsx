@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Mic, Flame, Trophy, User, TrendingUp, MessageSquare, Swords, ListChecks, Target } from "lucide-react";
+import { Home, Mic, Flame, Trophy, User, TrendingUp, MessageSquare, Swords, ListChecks } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import {
@@ -9,7 +9,6 @@ import {
 
 const ITEMS: { to: string; label: string; icon: typeof Home; primary?: boolean; key?: string }[] = [
   { to: "/dashboard", label: "Start", icon: Home },
-  { to: "/practice", label: "Praktyka", icon: Target },
   { to: "/drills", label: "Zadania", icon: ListChecks },
   { to: "/progress", label: "Postępy", icon: TrendingUp },
   { to: "/record", label: "Nagraj", icon: Mic, primary: true },
