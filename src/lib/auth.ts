@@ -39,11 +39,12 @@ export async function signUpWithEmail(
   fullName: string
 ): Promise<boolean> {
   if (!hasSupabaseConfig) return notConfigured();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { full_name: fullName },
+      emailRedirectTo: `${window.location.origin}/welcome`,
     },
   });
 
@@ -52,9 +53,31 @@ export async function signUpWithEmail(
     return false;
   }
 
-  toast.success("Konto utworzone!", {
-    description: "Sprawdź swoją skrzynkę i potwierdź email, aby rozpocząć.",
-  });
+  // Wyślij maila powitalnego (fire-and-forget — błąd nie blokuje rejestracji).
+  supabase.functions
+    .invoke("send-welcome-email", {
+      body: { email, name: fullName, user_id: data.user?.id },
+    })
+    .catch((err) => {
+      console.warn("send-welcome-email invoke failed:", err);
+    });
+
+  // Auto-login: jeśli potwierdzanie email jest wyłączone, signUp zwraca sesję od razu.
+  // Jeśli sesji nie ma, próbujemy zalogować jawnie (zadziała tylko gdy email confirm = off).
+  if (data.session) {
+    toast.success("Konto utworzone!", { description: "Witamy w Big Speaking 🔥" });
+    return true;
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) {
+    toast.success("Konto utworzone!", {
+      description: "Sprawdź swoją skrzynkę i potwierdź email, aby się zalogować.",
+    });
+    return true;
+  }
+
+  toast.success("Konto utworzone!", { description: "Witamy w Big Speaking 🔥" });
   return true;
 }
 
