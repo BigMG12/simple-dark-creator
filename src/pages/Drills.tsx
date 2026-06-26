@@ -173,7 +173,7 @@ export default function Drills() {
               size="sm"
               onClick={() => {
                 setCategory("Wszystkie");
-                setDifficulty(null);
+                setDifficulties([]);
               }}
             >
               Resetuj filtry
