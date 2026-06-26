@@ -8,6 +8,7 @@ import DrillTextDisplay from "@/components/exercise/DrillTextDisplay";
 import PreparationPhase from "@/components/exercise/PreparationPhase";
 import RecordingPhase from "@/components/exercise/RecordingPhase";
 import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
+import type { SubmitRecordingPayload } from "@/hooks/exercise/useSubmitRecording";
 
 export default function DrillExercise() {
   const { id } = useParams<{ id: string }>();
