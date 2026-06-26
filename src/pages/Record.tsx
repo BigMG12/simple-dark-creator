@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Mic, MessageSquare } from "lucide-react";
 import { TopicPicker } from "@/components/record/TopicPicker";
 import { DurationToggle } from "@/components/record/DurationToggle";
@@ -8,15 +8,36 @@ import { BrowserUnsupported } from "@/components/record/BrowserUnsupported";
 import { isMediaRecorderSupported } from "@/hooks/use-media-recorder";
 import { recordingSession, type RecordingMode } from "@/hooks/use-recording-session";
 import { pickRandomTopic, pickRandomChallenge, type Duration } from "@/data/topics";
+import { getDrillById } from "@/data/drills";
 import { cn } from "@/lib/utils";
 
 type Mode = "practice" | "conversation";
 
 export default function Record() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [duration, setDuration] = useState<Duration>(60);
   const [customOpen, setCustomOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("practice");
+
+  // Drill direct-entry: /record?drillId=xyz → skip arena, load drill, go to prep.
+  useEffect(() => {
+    const drillId = params.get("drillId");
+    if (!drillId) return;
+    const drill = getDrillById(drillId);
+    if (!drill) return;
+    const text =
+      drill.contentKind === "words"
+        ? `${drill.instructions} Słowa: ${(drill.wordList ?? []).join(", ")}`
+        : drill.content;
+    recordingSession.set({
+      topic: text,
+      duration: 60,
+      mode: "custom",
+      speaker: `Drill: ${drill.title}`,
+    });
+    navigate("/record/prep", { replace: true });
+  }, [params, navigate]);
 
   if (!isMediaRecorderSupported()) return <BrowserUnsupported />;
 
