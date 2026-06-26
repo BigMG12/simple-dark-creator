@@ -24,6 +24,7 @@ import SpeakerDetail from "./pages/SpeakerDetail.tsx";
 import SpeakerImport from "./pages/SpeakerImport.tsx";
 import SpeakerImports from "./pages/SpeakerImports.tsx";
 import Drills from "./pages/Drills.tsx";
+import Tasks from "./pages/Tasks.tsx";
 import DrillDetail from "./pages/DrillDetail.tsx";
 import Profile from "./pages/Profile.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -76,7 +77,8 @@ const App = () => (
                 <Route path="/speakers/import" element={<SpeakerImport />} />
                 <Route path="/speakers/imports" element={<SpeakerImports />} />
                 <Route path="/speakers/:id" element={<SpeakerDetail />} />
-                <Route path="/drills" element={<Drills />} />
+               <Route path="/drills" element={<Drills />} />
+               <Route path="/tasks" element={<Tasks />} />
                 <Route path="/drills/:id" element={<DrillDetail />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/conversations" element={<ConversationsLibrary />} />
