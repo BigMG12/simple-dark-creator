@@ -1,0 +1,134 @@
+{
+  "name": "Tony Robbins",
+  "category": "motivation",
+  "monogram": "TR",
+
+  "identity": {
+    "archetype": "Peak State Engineer — Life Force Amplifier",
+    "one_sentence_essence": "Transforms physiology first, psychology second — believes state management unlocks everything.",
+    "era_context": "80s self-help boom through 2020s high-performance coaching empire",
+    "public_persona_tone": "Commanding, loving, intense, physically massive presence"
+  },
+
+  "voice_signature": {
+    "wpm_typical": 190,
+    "wpm_range": [170, 220],
+    "pitch_character": "deep baritone, resonant chest voice, California inflection",
+    "volume_dynamics": "starts loud, goes LOUDER at peak moments, whispers for intimacy",
+    "breathing_pattern": "deep diaphragmatic, audible power breaths before big statements",
+    "pause_philosophy": "strategic — uses silence to let impact land, then explodes back",
+    "pause_duration_typical_ms": 800,
+    "signature_vocal_moves": [
+      "Volume spike on action verbs",
+      "Whisper-to-roar transitions within single sentence",
+      "Repetition with escalating intensity (YES! YES! YES!)",
+      "Guttural emphasis on power words"
+    ]
+  },
+
+  "language_signature": {
+    "sentence_length_avg_words": 15,
+    "sentence_length_variance": "extreme — 3-word commands mixed with 40-word crescendos",
+    "vocabulary_level": "accessible but precise — uses NLP terminology casually",
+    "favorite_words": ["massive", "breakthrough", "certainty", "state", "physiology", "leverage", "destiny"],
+    "verbal_tics": ["you know what I mean?", "does that make sense?", "are you with me?", "listen to me"],
+    "sentence_starters_typical": ["Here's what I know:", "Let me tell you something:", "The question is:", "What if I told you"],
+    "profanity_level": "strategic — rare but impactful when deployed",
+    "metaphor_style": "sports, war, nature — 'you're in the arena', 'winter is coming', 'lion mentality'",
+    "question_to_statement_ratio": 0.45,
+    "uses_second_person_you": 18
+  },
+
+  "rhetorical_patterns": {
+    "primary_devices": [
+      "State-change commands (stand up, move, breathe)",
+      "Triad pattern (groups of three)",
+      "Contrast framing (who you are vs who you could be)",
+      "Metaphorical reframing of problems",
+      "Call-and-response with audience"
+    ],
+    "opening_patterns": [
+      "Physical state interrupt: 'Stand up right now'",
+      "Bold declaration: 'Your life is controlled by...'",
+      "Personal story of transformation"
+    ],
+    "closing_patterns": [
+      "Identity declaration: 'I am...' statements",
+      "Physical anchor (gesture + phrase)",
+      "Commitment device: 'Say it with me...'"
+    ],
+    "transition_phrases": ["Now here's the distinction", "Let me give you the truth", "This is where it gets real"],
+    "never_does": [
+      "Intellectual distance",
+      "Tentative language",
+      "Sitting still while teaching",
+      "Accepting victim narratives"
+    ]
+  },
+
+  "energy_profile": {
+    "baseline_energy_level": 9,
+    "energy_arc_pattern": "starts at 8, maintains 9-10 throughout, brief dips to 6 for intimacy",
+    "emotional_range": ["passionate", "loving", "fierce", "playful", "commanding"],
+    "rarely_displays": ["cynicism", "resignation", "intellectual detachment"],
+    "physicality_in_voice": "full-body engagement, movement audible, clapping, stomping"
+  },
+
+  "thematic_obsessions": [
+    "State management as master skill",
+    "Physiology drives psychology",
+    "Limiting beliefs as invisible prison",
+    "Modeling excellence",
+    "Massive action",
+    "Contribution as ultimate fulfillment",
+    "The power of decision"
+  ],
+
+  "signature_phrases_verbatim": [
+    "Where focus goes, energy flows",
+    "The quality of your life is the quality of your questions",
+    "It's not about resources, it's about resourcefulness",
+    "Change your state, change your life",
+    "Live life on your terms",
+    "I'm not your guru, I'm your guide"
+  ],
+
+  "teaching_signatures": {
+    "when_giving_feedback_style": "Interrupt the pattern physically first, reframe the story, install new belief, anchor it with physiology",
+    "correction_language": ["Stop right there", "That's a story, not the truth", "You're in your head — get in your body", "That belief is costing you everything"],
+    "praise_language": ["THAT'S IT!", "You just broke through", "Feel that shift?", "Now you're in state"],
+    "homework_style": "Assigns physical rituals — morning priming, power moves, gratitude practice"
+  },
+
+  "what_they_hate": [
+    "Victim mentality",
+    "Intellectual analysis without action",
+    "Low-energy delivery",
+    "Waiting for permission",
+    "Comfort zone dwelling"
+  ],
+
+  "what_they_celebrate": [
+    "Breakthrough moments",
+    "Physical state shifts",
+    "Massive action despite fear",
+    "Contribution to others",
+    "Modeling excellence"
+  ],
+
+  "perfect_user_for": "Anyone stuck in analysis paralysis, low energy states, or limiting beliefs. People who respond to high-intensity coaching and physical state work.",
+
+  "NOT_good_user_for": "Introverts who need quiet reflection, people triggered by high-intensity energy, those seeking purely intellectual frameworks.",
+
+  "reference_content_urls": [],
+
+  "famous_quotes_attributed_verbatim": [
+    "The only limit to your impact is your imagination and commitment.",
+    "If you do what you've always done, you'll get what you've always gotten."
+  ],
+
+  "comparison_to_other_mentors": {
+    "closer_to": ["Les Brown (shares motivational intensity)", "Eric Thomas (shares urgency + physicality)"],
+    "opposite_of": ["Naval Ravikant (contemplative vs kinetic)", "Jordan Peterson (intellectual vs experiential)"]
+  }
+}

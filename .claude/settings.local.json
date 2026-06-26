@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vitest *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(grep -E \"^\\\\\\),?$\" supabase/migrations/002_seed_data.sql)",
+      "Bash(git checkout *)",
+      "Bash(xargs grep *)",
+      "Bash(npm run *)",
+      "Bash(git rebase *)",
+      "Bash(git push *)",
+      "Bash(npx supabase *)",
+      "Bash(supabase migration *)",
+      "Bash(supabase functions *)",
+      "Bash(supabase secrets *)",
+      "Bash(grep -v \"^_shared$\")",
+      "Bash(awk '$1 > 1 {print \"Duplikat numeru: \" $2 \" \\(występuje \" $1 \" razy\\)\"}')",
+      "Bash(git commit *)",
+      "Bash(mv 012_audit_fixes.sql ../migrations_archive/)",
+      "Bash(mv 004_storage_cleanup.sql ../migrations_archive/)",
+      "Bash(supabase db *)",
+      "Bash(xargs -I {} basename {} .tsx)",
+      "Bash(cat)",
+      "Bash(bash /tmp/analyze_pages.sh)",
+      "Bash(bash /tmp/full_analysis.sh)",
+      "Bash(bash /tmp/detailed_analysis.sh)"
+    ]
+  }
+}
