@@ -84,11 +84,21 @@ export default function DrillExercise() {
         </RecordingPhase>
       )}
 
-      {phase === "analyzing" && (
-        <AnalyzingPhase
-          onComplete={() => navigate(`/results/mock-${Date.now()}`)}
-        />
-      )}
+      {phase === "analyzing" && (() => {
+        const payload: SubmitRecordingPayload = {
+          drillId: drill.id,
+          topic: drill.title,
+          topicType: "drill",
+          durationSeconds: 60,
+        };
+        return (
+          <AnalyzingPhase
+            submitPayload={payload}
+            blob={useExercise().recordingBlob}
+            onComplete={(id) => navigate(id ? `/results/${id}` : `/results/mock-${Date.now()}`)}
+          />
+        );
+      })()}
     </ExerciseLayout>
   );
 }
