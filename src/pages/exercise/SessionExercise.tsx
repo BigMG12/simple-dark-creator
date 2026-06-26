@@ -11,6 +11,7 @@ import TopicDisplay from "@/components/exercise/TopicDisplay";
 import PreparationPhase from "@/components/exercise/PreparationPhase";
 import RecordingPhase from "@/components/exercise/RecordingPhase";
 import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
+import { useCompleteSessionExercise } from "@/hooks/session/useCompleteSessionExercise";
 
 interface MockStep {
   order: number;
