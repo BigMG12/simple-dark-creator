@@ -74,8 +74,14 @@ export default function SessionExercise() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const advance = () => {
-    // TODO (Claude Code): wywołaj useCompleteSessionExercise z realnym recordingId i score.
+  const advance = async (recordingId: string | null) => {
+    if (recordingId && id && !id.startsWith("mock-")) {
+      try {
+        await completeStep.mutateAsync({ sessionId: id, recordingId, score: 0 });
+      } catch (e) {
+        console.warn("[SessionExercise] complete_session_exercise failed", e);
+      }
+    }
     if (stepIndex + 1 >= totalSteps) {
       navigate(`/session/summary/${id}`);
     } else {
