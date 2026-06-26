@@ -9,7 +9,7 @@ import {
 
 const ITEMS: { to: string; label: string; icon: typeof Home; primary?: boolean; key?: string }[] = [
   { to: "/dashboard", label: "Start", icon: Home },
-  { to: "/tasks", label: "Zadania", icon: ListChecks },
+  { to: "/drills", label: "Zadania", icon: ListChecks },
   { to: "/progress", label: "Postępy", icon: TrendingUp },
   { to: "/record", label: "Nagraj", icon: Mic, primary: true },
   { to: "/sparring", label: "Sparring", icon: Swords },
