@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, Mic, Flame, Trophy, User, TrendingUp, MessageSquare, Swords } from "lucide-react";
+import { Home, Mic, Flame, Trophy, User, TrendingUp, MessageSquare, Swords, ListChecks } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import {
@@ -9,6 +9,7 @@ import {
 
 const ITEMS: { to: string; label: string; icon: typeof Home; primary?: boolean; key?: string }[] = [
   { to: "/dashboard", label: "Start", icon: Home },
+  { to: "/tasks", label: "Zadania", icon: ListChecks },
   { to: "/progress", label: "Postępy", icon: TrendingUp },
   { to: "/record", label: "Nagraj", icon: Mic, primary: true },
   { to: "/sparring", label: "Sparring", icon: Swords },
@@ -49,7 +50,7 @@ export function AppNav() {
         className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/85 backdrop-blur-xl border-t border-border"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className="grid grid-cols-7 items-end h-18 px-1 pt-2 pb-2">
+        <ul className="grid grid-cols-8 items-end h-18 px-1 pt-2 pb-2">
           {ITEMS.map(({ to, label, icon: Icon, primary, key }) => (
             <li key={to} className={cn("flex justify-center", primary && "-mt-6")}>
               <NavLink
