@@ -11,7 +11,7 @@ import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
 
 export default function ImpromptuExercise() {
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const [topic, setTopic] = useState<string>(() => pickRandomTopic());
   const [duration, setDuration] = useState<Duration>(60);
 
@@ -91,7 +91,11 @@ export default function ImpromptuExercise() {
       )}
 
       {phase === "analyzing" && (
-        <AnalyzingPhase onComplete={() => navigate(`/results/mock-${Date.now()}`)} />
+        <AnalyzingPhase
+          submitPayload={{ topic, topicType: "random", durationSeconds: duration }}
+          blob={recordingBlob}
+          onComplete={(rid) => navigate(rid ? `/results/${rid}` : `/results/mock-${Date.now()}`)}
+        />
       )}
     </ExerciseLayout>
   );

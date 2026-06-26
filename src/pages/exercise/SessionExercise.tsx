@@ -11,6 +11,7 @@ import TopicDisplay from "@/components/exercise/TopicDisplay";
 import PreparationPhase from "@/components/exercise/PreparationPhase";
 import RecordingPhase from "@/components/exercise/RecordingPhase";
 import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
+import { useCompleteSessionExercise } from "@/hooks/session/useCompleteSessionExercise";
 
 interface MockStep {
   order: number;
@@ -37,8 +38,9 @@ const TYPE_META = {
 export default function SessionExercise() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const { data: session } = useSessionProgress(id);
+  const completeStep = useCompleteSessionExercise();
 
   const [stepIndex, setStepIndex] = useState(0);
   const [topic] = useState(() => pickRandomTopic());
@@ -72,8 +74,14 @@ export default function SessionExercise() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const advance = () => {
-    // TODO (Claude Code): wywołaj useCompleteSessionExercise z realnym recordingId i score.
+  const advance = async (recordingId: string | null) => {
+    if (recordingId && id && !id.startsWith("mock-")) {
+      try {
+        await completeStep.mutateAsync({ sessionId: id, recordingId, score: 0 });
+      } catch (e) {
+        console.warn("[SessionExercise] complete_session_exercise failed", e);
+      }
+    }
     if (stepIndex + 1 >= totalSteps) {
       navigate(`/session/summary/${id}`);
     } else {
@@ -146,7 +154,20 @@ export default function SessionExercise() {
         </RecordingPhase>
       )}
 
-      {phase === "analyzing" && <AnalyzingPhase onComplete={advance} />}
+      {phase === "analyzing" && (
+        <AnalyzingPhase
+          submitPayload={{
+            drillId: drill?.id ?? null,
+            topic: currentStep.topic ?? (currentStep.type === "impromptu" ? topic : drill?.title ?? null),
+            topicType: currentStep.type === "drill" ? "drill" : currentStep.type === "impromptu" ? "random" : "custom",
+            durationSeconds: currentStep.duration_seconds ?? 60,
+            sessionId: id,
+            stepOrder: currentStep.order,
+          }}
+          blob={recordingBlob}
+          onComplete={advance}
+        />
+      )}
     </ExerciseLayout>
   );
 }

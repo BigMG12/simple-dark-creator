@@ -8,11 +8,12 @@ import DrillTextDisplay from "@/components/exercise/DrillTextDisplay";
 import PreparationPhase from "@/components/exercise/PreparationPhase";
 import RecordingPhase from "@/components/exercise/RecordingPhase";
 import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
+import type { SubmitRecordingPayload } from "@/hooks/exercise/useSubmitRecording";
 
 export default function DrillExercise() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const drill = id ? getDrillById(id) : undefined;
   const [initialized, setInitialized] = useState(false);
 
@@ -85,7 +86,14 @@ export default function DrillExercise() {
 
       {phase === "analyzing" && (
         <AnalyzingPhase
-          onComplete={() => navigate(`/results/mock-${Date.now()}`)}
+          submitPayload={{
+            drillId: drill.id,
+            topic: drill.title,
+            topicType: "drill",
+            durationSeconds: 60,
+          } satisfies SubmitRecordingPayload}
+          blob={recordingBlob}
+          onComplete={(rid) => navigate(rid ? `/results/${rid}` : `/results/mock-${Date.now()}`)}
         />
       )}
     </ExerciseLayout>
