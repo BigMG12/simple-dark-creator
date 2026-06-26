@@ -148,7 +148,7 @@ export default function DrillDetail() {
             variant="fire"
             size="lg"
             className="flex-1"
-            onClick={() => navigate(`/exercise/drill/${drill.id}`)}
+            onClick={() => navigate(`/record?drillId=${drill.id}`)}
           >
             <Flame />
             Rozpocznij ćwiczenie
