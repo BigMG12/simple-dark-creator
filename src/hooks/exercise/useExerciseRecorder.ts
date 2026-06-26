@@ -1,64 +1,142 @@
-import { useEffect, useRef, useState } from "react";
-import { useMediaRecorder } from "@/hooks/use-media-recorder";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAudioAnalyser } from "@/hooks/use-audio-analyser";
 
+type State = "idle" | "requesting" | "ready" | "recording" | "stopped" | "error";
+
+interface RecorderError {
+  kind: "denied" | "notfound" | "unsupported" | "unknown";
+  message: string;
+}
+
+function isSupported() {
+  return (
+    typeof navigator !== "undefined" &&
+    !!navigator.mediaDevices?.getUserMedia &&
+    typeof window !== "undefined" &&
+    typeof window.MediaRecorder !== "undefined"
+  );
+}
+
 /**
- * Real audio recorder for exercise flow.
- * - Requests mic on mount.
- * - Auto-starts recording once stream is ready.
- * - Exposes blob (after stop) + live levels for waveform.
- * - Cleans up tracks/timers on unmount.
+ * Real audio recorder for the exercise flow.
+ * Owns its own MediaRecorder so we can resolve a Promise on `stop()`
+ * synchronously with the blob — avoiding the race where the parent
+ * unmounts before MediaRecorder.onstop fires.
  */
 export function useExerciseRecorder() {
-  const recorder = useMediaRecorder();
-  const levels = useAudioAnalyser(recorder.stream, 48);
-  const [blob, setBlob] = useState<Blob | null>(null);
-  const startedRef = useRef(false);
+  const [state, setState] = useState<State>("idle");
+  const [error, setError] = useState<RecorderError | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Request mic permission once.
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const blobResolversRef = useRef<((b: Blob) => void)[]>([]);
+  const finalBlobRef = useRef<Blob | null>(null);
+  const startedRef = useRef(false);
+  const requestedRef = useRef(false);
+
+  const levels = useAudioAnalyser(stream, 48);
+
+  // Request mic once on mount.
   useEffect(() => {
-    let cancelled = false;
+    if (requestedRef.current) return;
+    requestedRef.current = true;
+
+    if (!isSupported()) {
+      setError({ kind: "unsupported", message: "Twoja przeglądarka nie obsługuje nagrywania audio." });
+      setState("error");
+      return;
+    }
+
+    setState("requesting");
     (async () => {
-      if (recorder.state !== "idle") return;
-      const s = await recorder.requestPermission();
-      if (cancelled || !s) return;
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setStream(s);
+        setState("ready");
+      } catch (e: any) {
+        const name = e?.name ?? "";
+        if (name === "NotAllowedError" || name === "SecurityError") {
+          setError({ kind: "denied", message: "Brak dostępu do mikrofonu." });
+        } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+          setError({ kind: "notfound", message: "Nie znaleziono mikrofonu." });
+        } else {
+          setError({ kind: "unknown", message: e?.message ?? "Nie udało się uruchomić mikrofonu." });
+        }
+        setState("error");
+      }
     })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-start once ready.
+  // Auto-start on ready.
   useEffect(() => {
-    if (recorder.state === "ready" && recorder.stream && !startedRef.current) {
-      startedRef.current = true;
-      recorder.start(recorder.stream);
-    }
-  }, [recorder.state, recorder.stream, recorder]);
+    if (state !== "ready" || !stream || startedRef.current) return;
+    startedRef.current = true;
 
-  // Capture blob after stop.
-  useEffect(() => {
-    if (recorder.state === "stopped" && recorder.blobRef.current) {
-      setBlob(recorder.blobRef.current);
-    }
-  }, [recorder.state, recorder.blobRef]);
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : "audio/webm";
+
+    const rec = new MediaRecorder(stream, { mimeType: mime });
+    chunksRef.current = [];
+
+    rec.ondataavailable = (ev) => {
+      if (ev.data.size > 0) chunksRef.current.push(ev.data);
+    };
+
+    rec.onstop = () => {
+      const baseMime = mime.split(";")[0];
+      const blob = new Blob(chunksRef.current, { type: baseMime });
+      finalBlobRef.current = blob;
+      setState("stopped");
+      // Resolve any pending waiters.
+      const waiters = blobResolversRef.current;
+      blobResolversRef.current = [];
+      waiters.forEach((r) => r(blob));
+    };
+
+    recorderRef.current = rec;
+    rec.start(100);
+    setState("recording");
+  }, [state, stream]);
+
+  /** Stops recording and resolves with the finalized Blob. */
+  const stopAndAwait = useCallback((): Promise<Blob> => {
+    if (finalBlobRef.current) return Promise.resolve(finalBlobRef.current);
+    return new Promise<Blob>((resolve) => {
+      blobResolversRef.current.push(resolve);
+      const rec = recorderRef.current;
+      if (rec && rec.state !== "inactive") {
+        try {
+          rec.stop();
+        } catch (e) {
+          console.warn("[useExerciseRecorder] stop failed", e);
+        }
+      }
+    });
+  }, []);
 
   // Hard teardown on unmount.
   useEffect(() => {
     return () => {
       try {
-        recorder.teardown();
+        const rec = recorderRef.current;
+        if (rec && rec.state !== "inactive") rec.stop();
       } catch {}
+      stream?.getTracks().forEach((t) => {
+        try {
+          t.stop();
+        } catch {}
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stream]);
 
   return {
-    state: recorder.state,
-    error: recorder.error,
+    state,
+    error,
     levels,
-    blob,
-    stop: recorder.stop,
+    blob: finalBlobRef.current,
+    stopAndAwait,
   };
 }
