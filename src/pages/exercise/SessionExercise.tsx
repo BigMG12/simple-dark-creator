@@ -154,7 +154,20 @@ export default function SessionExercise() {
         </RecordingPhase>
       )}
 
-      {phase === "analyzing" && <AnalyzingPhase onComplete={advance} />}
+      {phase === "analyzing" && (
+        <AnalyzingPhase
+          submitPayload={{
+            drillId: drill?.id ?? null,
+            topic: currentStep.topic ?? (currentStep.type === "impromptu" ? topic : drill?.title ?? null),
+            topicType: currentStep.type === "drill" ? "drill" : currentStep.type === "impromptu" ? "random" : "custom",
+            durationSeconds: currentStep.duration_seconds ?? 60,
+            sessionId: id,
+            stepOrder: currentStep.order,
+          }}
+          blob={recordingBlob}
+          onComplete={advance}
+        />
+      )}
     </ExerciseLayout>
   );
 }
