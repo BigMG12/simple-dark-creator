@@ -13,7 +13,7 @@ import type { SubmitRecordingPayload } from "@/hooks/exercise/useSubmitRecording
 export default function DrillExercise() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const drill = id ? getDrillById(id) : undefined;
   const [initialized, setInitialized] = useState(false);
 
