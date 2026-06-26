@@ -13,7 +13,7 @@ const MAX_LEN = 200;
 
 export default function CustomExercise() {
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const [topic, setTopic] = useState("");
   const [duration, setDuration] = useState<Duration>(60);
 
