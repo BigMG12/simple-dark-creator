@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Square, AlertTriangle } from "lucide-react";
 import { useExerciseFlow } from "@/hooks/exercise/useExerciseFlow";
 import { useExercise } from "@/contexts/ExerciseContext";
@@ -15,27 +15,28 @@ export default function RecordingPhase({ children }: Props) {
   const { elapsedSeconds, stopRecording } = useExerciseFlow();
   const total = current?.durationSeconds ?? 60;
 
-  const { state, error, levels, blob, stop } = useExerciseRecorder();
+  const { state, error, levels, stopAndAwait } = useExerciseRecorder();
+  const stoppingRef = useRef(false);
 
-  // When user clicks stop OR auto-stop fires (phase → analyzing handled by flow),
-  // we must stop MediaRecorder. We listen to either: user click or external phase change.
-  // Strategy: when elapsed >= total, stop recorder; when blob ready, save to context.
+  const finalize = async () => {
+    if (stoppingRef.current) return;
+    stoppingRef.current = true;
+    try {
+      const blob = await stopAndAwait();
+      setRecordingBlob(blob);
+    } catch (e) {
+      console.warn("[RecordingPhase] stop failed", e);
+    }
+    stopRecording(); // advance phase → analyzing
+  };
+
+  // Auto-stop when timer hits limit.
   useEffect(() => {
     if (elapsedSeconds >= total && state === "recording") {
-      stop();
+      finalize();
     }
-  }, [elapsedSeconds, total, state, stop]);
-
-  useEffect(() => {
-    if (blob) {
-      setRecordingBlob(blob);
-    }
-  }, [blob, setRecordingBlob]);
-
-  const handleStop = () => {
-    stop();
-    stopRecording();
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsedSeconds, total, state]);
 
   if (state === "error") {
     return (
@@ -71,7 +72,7 @@ export default function RecordingPhase({ children }: Props) {
       </div>
 
       <button
-        onClick={handleStop}
+        onClick={finalize}
         disabled={state !== "recording"}
         className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-6 py-3 text-sm font-semibold text-white shadow-elegant transition-all hover:-translate-y-0.5 hover:bg-rose-400 disabled:opacity-50"
       >
