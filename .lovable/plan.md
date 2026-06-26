@@ -1,28 +1,53 @@
-# Plan: Auto-login po rejestracji + email powitalny
+# Plan: kinowy ekran /onboarding "WITAJ W MIEJSCU TWOJEJ ZMIANY"
 
-## Co zmieniamy
+## Cel
+Stworzyć nową, mocno aesthetic stronę powitalną pod `/onboarding`, którą nowy użytkownik widzi zaraz po rejestracji — przed jakimkolwiek menu/zadaniami. Z dwiema akcjami: obejrzyj VSL albo pomiń tutorial. Istniejący `/welcome` (CircleMenu) zostaje bez zmian.
 
-1. **Auto-login po sign up**
-   - W `src/components/auth/SignUpForm.tsx` po udanej rejestracji wywołać `signInWithEmail(email, password)` zamiast polegać na potwierdzeniu mailowym.
-   - Wymaga wyłączenia "Confirm email" w ustawieniach Lovable Cloud Auth, żeby użytkownik mógł się od razu zalogować (bez tego signIn zwróci "Email not confirmed"). Zrobimy to przez `configure_auth`.
-   - Po sukcesie `AuthContext` wykryje sesję, `PublicOnlyRoute` przekieruje na `/welcome` (już jest taki redirect w `src/pages/Auth.tsx` przez `onAuthenticated`).
+## Co powstanie
 
-2. **Email powitalny (gratulacje za dołączenie)**
-   - To jest email transakcyjny (jeden recipient, wywołany zdarzeniem signup) — używamy wbudowanego systemu Lovable Emails.
-   - Wymaga: Lovable Cloud (już włączone), skonfigurowanej domeny email, infrastruktury kolejki, oraz scaffoldu transactional email.
-   - Krok 1: sprawdzić status domeny. Jeśli brak — pokazać dialog `<presentation-open-email-setup>` i poczekać aż user skonfiguruje, potem kontynuować.
-   - Krok 2: `setup_email_infra` + `scaffold_transactional_email` (jeśli jeszcze nie ma).
-   - Krok 3: stworzyć szablon `supabase/functions/_shared/transactional-email-templates/welcome.tsx` z gratulacjami w stylu Big Speaking (ciemny brand, pomarańczowy akcent `fire`, polski język, ton zgodny z resztą aplikacji). Zarejestrować w `registry.ts`.
-   - Krok 4: wysyłka — po udanym `signUp` w `src/lib/auth.ts` wywołać `supabase.functions.invoke('send-transactional-email', { body: { templateName: 'welcome', recipientEmail: email, idempotencyKey: \`welcome-${user.id}\`, templateData: { name: fullName } } })`.
-   - Krok 5: deploy edge functions.
+### 1. Nowa strona `src/pages/Onboarding.tsx`
+Pełnoekranowy, czarny, kinowy layout (Cinematic Noir: `#0a0a0a` tło, `#1a1a1a` warstwy, akcent ognia `#e85d3a`, ciepły bursztyn `#f0d78c`).
 
-## Treść emaila (propozycja, PL)
+Struktura:
+- Tło: głęboka czerń z subtelną radialną poświatą bursztynu w rogu + delikatny grain/noise overlay.
+- Mały eyebrow: `WITAJ` (mono, uppercase, tracking, kolor bursztynu, fade-in).
+- Headline H1: **„W MIEJSCU TWOJEJ ZMIANY"** — gigantyczna, serif display (np. Instrument Serif), z animowanym staggered reveal słowo po słowie.
+- Podtytuł: krótka linia w tonie — „Tu zaczyna się Twój głos. Wybierz, jak chcesz wejść."
+- Dwie karty CTA side-by-side (na mobile w stacku):
+  1. **Obejrzyj wprowadzenie (VSL)** — duża karta z ikoną Play w kole ognistym, opisem „2 min. Pokażę Ci jak działa Big Speaking i jak zbudować swój plan nauki." → otwiera modal z odtwarzaczem.
+  2. **Pomiń i eksploruj sam** — bardziej dyskretna, outline, „Przejdź od razu do aplikacji." → nawiguje na `/welcome`.
+- Stopka: maleńki licznik kroków „01 / 01" + linia.
 
-- **Subject:** „Witaj w Big Speaking 🔥"
-- **Body:** krótkie gratulacje, jedno zdanie o tym co dalej (nagraj pierwszą wypowiedź), CTA "Rozpocznij" → `/welcome`.
+Mikrointerakcje: hover-lift na kartach, glow na ikonie play, kursor-aware light w karcie VSL.
 
-## Pytanie do Ciebie
+### 2. Nowy komponent `src/components/onboarding/VSLModal.tsx`
+- Pełnoekranowy ciemny modal (Dialog z shadcn) z natywnym `<video controls>` na pusty `src` (placeholder URL `/intro.mp4` — do podmiany przez użytkownika później).
+- Pod wideo: dwa CTA — „Mam plan, zacznijmy" → `/welcome`, oraz „Zamknij".
+- Esc/X zamyka, scroll-lock.
 
-Czy mogę **wyłączyć potwierdzanie emaila** w Auth? Bez tego auto-login nie zadziała (Supabase zablokuje logowanie do czasu kliknięcia w link). Alternatywa: zostawiamy potwierdzenie i auto-login działa dopiero po kliknięciu linku — wtedy nie ma sensu, bo i tak user wraca już zalogowany.
+### 3. Routing
+W `src/App.tsx` dodać `<Route path="/onboarding" element={<Onboarding />} />`.
 
-Zakładam **TAK, wyłączamy potwierdzanie** — daj znać jeśli wolisz inaczej.
+### 4. Redirect po rejestracji
+W `src/lib/auth.ts` (`signUpWithEmail`) zmienić aktualne przekierowanie po auto-loginie z `/welcome` na `/onboarding`. Logowanie istniejącego konta nadal idzie tam gdzie szło. Welcome email CTA zostawiamy bez zmian (lub też kierujemy na `/onboarding` — do potwierdzenia w trakcie).
+
+## Szczegóły techniczne
+- Font display: `@fontsource/instrument-serif` + już używany sans do reszty; instalacja przez `bun add`, import w `src/main.tsx`, mapowanie w `tailwind.config.ts` jako `font-display`.
+- Wszystkie kolory jako tokeny w `index.css` (`--onboarding-bg`, `--ember`, `--amber-warm`) — bez hardkodowania hexów w komponentach.
+- Animacje: tailwind `animate-fade-in` + niestandardowy keyframe `reveal-up` z opóźnieniami `style={{animationDelay}}`.
+- Plik wideo: brak realnego — `<video>` z pustym `src` i posterem; obok info „Wideo wkrótce" jeśli `src` puste.
+- Brak zmian w `Welcome.tsx`, `Dashboard.tsx`, edge functions.
+
+## Pliki
+- nowy: `src/pages/Onboarding.tsx`
+- nowy: `src/components/onboarding/VSLModal.tsx`
+- edycja: `src/App.tsx` (route)
+- edycja: `src/lib/auth.ts` (redirect target)
+- edycja: `src/index.css` (tokeny noir/ember)
+- edycja: `tailwind.config.ts` (font-display, keyframe `reveal-up`)
+- edycja: `src/main.tsx` (import fontu)
+
+## Poza zakresem
+- Hosting realnego pliku VSL (podstawisz później).
+- Zmiany w CircleMenu / Dashboard.
+- Tłumaczenia / i18n.
