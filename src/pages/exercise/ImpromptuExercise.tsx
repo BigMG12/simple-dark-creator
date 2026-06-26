@@ -91,7 +91,11 @@ export default function ImpromptuExercise() {
       )}
 
       {phase === "analyzing" && (
-        <AnalyzingPhase onComplete={() => navigate(`/results/mock-${Date.now()}`)} />
+        <AnalyzingPhase
+          submitPayload={{ topic, topicType: "random", durationSeconds: duration }}
+          blob={recordingBlob}
+          onComplete={(rid) => navigate(rid ? `/results/${rid}` : `/results/mock-${Date.now()}`)}
+        />
       )}
     </ExerciseLayout>
   );
