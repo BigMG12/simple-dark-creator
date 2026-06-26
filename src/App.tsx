@@ -18,8 +18,6 @@ import Results from "./pages/Results.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Welcome from "./pages/Welcome.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
-import PracticeHub from "./pages/practice/PracticeHub.tsx";
-import SessionStart from "./pages/practice/SessionStart.tsx";
 import ProgressPage from "./pages/Progress.tsx";
 import Speakers from "./pages/Speakers.tsx";
 import SpeakerDetail from "./pages/SpeakerDetail.tsx";
@@ -73,8 +71,6 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/welcome" element={<Welcome />} />
                 <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/practice" element={<PracticeHub />} />
-                <Route path="/session/start" element={<SessionStart />} />
                 <Route path="/progress" element={<ProgressPage />} />
                 <Route path="/speakers" element={<Speakers />} />
                 <Route path="/speakers/import" element={<SpeakerImport />} />
