@@ -96,7 +96,11 @@ export default function CustomExercise() {
       )}
 
       {phase === "analyzing" && (
-        <AnalyzingPhase onComplete={() => navigate(`/results/mock-${Date.now()}`)} />
+        <AnalyzingPhase
+          submitPayload={{ topic: topic.trim(), topicType: "custom", durationSeconds: duration }}
+          blob={recordingBlob}
+          onComplete={(rid) => navigate(rid ? `/results/${rid}` : `/results/mock-${Date.now()}`)}
+        />
       )}
     </ExerciseLayout>
   );
