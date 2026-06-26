@@ -19,6 +19,7 @@ export default {
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
         anton: ['"Anton"', "sans-serif"],
         condiment: ['"Condiment"', "cursive"],
+        serif: ['"Instrument Serif"', "Georgia", "serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -27,6 +28,14 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         surface: "hsl(var(--surface))",
+        "onboarding-bg": "hsl(var(--onboarding-bg))",
+        "onboarding-surface": "hsl(var(--onboarding-surface))",
+        "onboarding-line": "hsl(var(--onboarding-line))",
+        ember: {
+          DEFAULT: "hsl(var(--ember))",
+          hot: "hsl(var(--ember-hot))",
+        },
+        "amber-warm": "hsl(var(--amber-warm))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
