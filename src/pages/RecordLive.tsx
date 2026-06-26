@@ -182,8 +182,12 @@ export default function RecordLive() {
 
   const handleCancel = () => {
     teardown();
+    const backTo =
+      session.source === "drill" && session.drillId
+        ? `/drills/${session.drillId}`
+        : "/record";
     recordingSession.clear();
-    navigate("/record");
+    navigate(backTo, { replace: true });
   };
 
   const remaining = Math.max(0, session.duration - elapsed);
