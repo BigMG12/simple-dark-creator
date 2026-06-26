@@ -59,9 +59,10 @@ export function useExerciseFlow(opts: UseExerciseFlowOptions = {}) {
       counter += 1;
       setElapsedSeconds(counter);
 
+      // Do NOT auto-advance to 'analyzing' here — RecordingPhase owns the
+      // stop transition so it can finalize the MediaRecorder blob first.
       if (counter >= maxSeconds) {
         clearInterval(intervalRef.current!);
-        setPhase('analyzing');
       }
     }, 1000);
 
