@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SparringProvider } from "@/contexts/SparringContext";
-import { ExerciseProvider } from "@/contexts/ExerciseContext";
+
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import Index from "./pages/Index.tsx";
@@ -19,13 +19,6 @@ import Results from "./pages/Results.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Welcome from "./pages/Welcome.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
-import PracticeHub from "./pages/practice/PracticeHub.tsx";
-import SessionStart from "./pages/practice/SessionStart.tsx";
-import DrillExercise from "./pages/exercise/DrillExercise.tsx";
-import ImpromptuExercise from "./pages/exercise/ImpromptuExercise.tsx";
-import CustomExercise from "./pages/exercise/CustomExercise.tsx";
-import SessionExercise from "./pages/exercise/SessionExercise.tsx";
-import SessionSummary from "./pages/exercise/SessionSummary.tsx";
 import ProgressPage from "./pages/Progress.tsx";
 import Speakers from "./pages/Speakers.tsx";
 import SpeakerDetail from "./pages/SpeakerDetail.tsx";
@@ -58,7 +51,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SparringProvider>
-            <ExerciseProvider>
+            
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Index />} />
@@ -80,13 +73,6 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/welcome" element={<Welcome />} />
                 <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/practice" element={<PracticeHub />} />
-                <Route path="/session/start" element={<SessionStart />} />
-                <Route path="/exercise/drill/:id" element={<DrillExercise />} />
-                <Route path="/exercise/impromptu" element={<ImpromptuExercise />} />
-                <Route path="/exercise/custom" element={<CustomExercise />} />
-                <Route path="/exercise/session/:id" element={<SessionExercise />} />
-                <Route path="/session/summary/:id" element={<SessionSummary />} />
                 <Route path="/progress" element={<ProgressPage />} />
                 <Route path="/speakers" element={<Speakers />} />
                 <Route path="/speakers/import" element={<SpeakerImport />} />
@@ -114,7 +100,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </ExerciseProvider>
+            
           </SparringProvider>
         </AuthProvider>
       </BrowserRouter>
