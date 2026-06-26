@@ -33,7 +33,7 @@ const VSLModal = ({ open, onOpenChange, src, poster }: VSLModalProps) => {
               <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-amber-warm">
                 VSL · wkrótce
               </p>
-              <p className="font-display text-2xl md:text-3xl text-foreground max-w-md leading-tight">
+              <p className="font-serif text-2xl md:text-3xl text-foreground max-w-md leading-tight">
                 Tutaj wyląduje wprowadzenie do Big Speaking.
               </p>
               <p className="text-sm text-muted-foreground max-w-sm">

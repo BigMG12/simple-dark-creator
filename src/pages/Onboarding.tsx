@@ -68,7 +68,7 @@ const Onboarding = () => {
             Witaj
           </p>
 
-          <h1 className="mt-5 font-display text-[clamp(2.75rem,9vw,7.5rem)] leading-[0.95] tracking-[-0.02em] text-foreground">
+          <h1 className="mt-5 font-serif text-[clamp(2.75rem,9vw,7.5rem)] leading-[0.95] tracking-[-0.02em] text-foreground">
             {HEADLINE_WORDS.map((word, i) => (
               <span
                 key={i}
@@ -112,7 +112,7 @@ const Onboarding = () => {
                   <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-warm">
                     Rekomendowane · 2 min
                   </p>
-                  <h2 className="font-display text-3xl md:text-[2.5rem] leading-[1.05] tracking-tight text-foreground">
+                  <h2 className="font-serif text-3xl md:text-[2.75rem] leading-[1.05] tracking-tight text-foreground">
                     Obejrzyj wprowadzenie
                   </h2>
                   <p className="text-sm md:text-base text-muted-foreground max-w-sm">
@@ -154,7 +154,7 @@ const Onboarding = () => {
                   <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
                     Dla niecierpliwych
                   </p>
-                  <h2 className="font-display text-2xl md:text-3xl leading-[1.05] tracking-tight text-foreground">
+                  <h2 className="font-serif text-2xl md:text-3xl leading-[1.05] tracking-tight text-foreground">
                     Pomiń i przetestuj sam.
                   </h2>
                   <p className="text-sm text-muted-foreground max-w-xs">
