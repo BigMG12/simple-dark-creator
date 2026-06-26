@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/nav/AppShell";
+import { TasksSection } from "@/components/dashboard/TasksSection";
 import { Sparkline } from "@/components/progress/Sparkline";
 import { MiniSkillRadar } from "@/components/progress/MiniSkillRadar";
 import { cn } from "@/lib/utils";
@@ -146,6 +147,9 @@ export default function Dashboard() {
             <div className="mt-3 text-xs text-muted-foreground">ostatnie 30 dni</div>
           </div>
         </section>
+
+        {/* Tasks for today */}
+        <TasksSection />
 
         {/* Primary action */}
         <section className="card-shimmer relative overflow-hidden rounded-2xl bg-gradient-primary p-7 md:p-10 shadow-elegant">
