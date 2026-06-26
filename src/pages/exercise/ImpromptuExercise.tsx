@@ -11,7 +11,7 @@ import AnalyzingPhase from "@/components/exercise/AnalyzingPhase";
 
 export default function ImpromptuExercise() {
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const [topic, setTopic] = useState<string>(() => pickRandomTopic());
   const [duration, setDuration] = useState<Duration>(60);
 
