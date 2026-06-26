@@ -38,8 +38,9 @@ const TYPE_META = {
 export default function SessionExercise() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { phase, setPhase, setCurrent, reset } = useExercise();
+  const { phase, setPhase, setCurrent, reset, recordingBlob } = useExercise();
   const { data: session } = useSessionProgress(id);
+  const completeStep = useCompleteSessionExercise();
 
   const [stepIndex, setStepIndex] = useState(0);
   const [topic] = useState(() => pickRandomTopic());
