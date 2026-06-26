@@ -1,15 +1,21 @@
-import { Brain, Play } from "lucide-react";
+import { Brain, Play, Loader2 } from "lucide-react";
 import ExerciseLayout from "@/pages/exercise/ExerciseLayout";
+import { useUserWeakness } from "@/hooks/exercise/useUserWeakness";
+import { useStartAdaptiveSession } from "@/hooks/session/useStartAdaptiveSession";
+
+const WEAKNESS_LABEL: Record<string, string> = {
+  fillers: 'słowa-wypełniacze ("yyy", "znaczy")',
+  pace: "tempo mówienia",
+  energy: "energia i dynamika",
+  pauses: "pauzy i oddech",
+  clarity: "klarowność dykcji",
+  general: "ogólna forma mówcza",
+};
 
 export default function SessionStart() {
-  // TODO (Claude Code): podepnij useStartAdaptiveSession hook
-  const mockWeakness = "słowa-wypełniacze (\"yyy\", \"znaczy\")";
-  const mockExerciseCount = 3;
-
-  const handleStart = () => {
-    // TODO (Claude Code): wywołaj build_adaptive_session RPC
-    alert("Adaptive session start — TODO Claude Code");
-  };
+  const { data: weakness = "general" } = useUserWeakness();
+  const startSession = useStartAdaptiveSession();
+  const exerciseCount = 3;
 
   return (
     <ExerciseLayout title="Adaptive Session" subtitle="Sesja dopasowana przez AI">
@@ -22,13 +28,13 @@ export default function SessionStart() {
           AI wybrał dla Ciebie
         </div>
         <h2 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-          {mockExerciseCount}{" "}
+          {exerciseCount}{" "}
           <span className="text-gradient-primary">ćwiczenia</span>
         </h2>
 
         <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
           Bazując na ostatnich sesjach, Twoja największa słabość to{" "}
-          <span className="font-medium text-foreground">{mockWeakness}</span>.
+          <span className="font-medium text-foreground">{WEAKNESS_LABEL[weakness]}</span>.
         </p>
 
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -39,11 +45,16 @@ export default function SessionStart() {
         </p>
 
         <button
-          onClick={handleStart}
-          className="mt-10 inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-elegant transition-all hover:-translate-y-0.5 hover:shadow-glow"
+          onClick={() => startSession.mutate()}
+          disabled={startSession.isPending}
+          className="mt-10 inline-flex items-center gap-2 rounded-xl bg-gradient-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-elegant transition-all hover:-translate-y-0.5 hover:shadow-glow disabled:opacity-60"
         >
-          <Play className="h-5 w-5" />
-          Zaczynam trening
+          {startSession.isPending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Play className="h-5 w-5" />
+          )}
+          {startSession.isPending ? "Buduję sesję…" : "Zaczynam trening"}
         </button>
 
         <p className="mt-4 font-mono text-xs uppercase tracking-[0.15em] text-muted-foreground">
