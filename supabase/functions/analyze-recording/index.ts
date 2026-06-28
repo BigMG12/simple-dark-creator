@@ -713,7 +713,9 @@ async function processInBackground({
     // Nie blokuje success-path; jeśli padnie, główna analiza nadal jest OK.
     try {
       admin.functions
-        .invoke("analyze-sentences", { body: { recording_id: recordingId } })
+        .invoke("analyze-sentences", {
+          body: { recording_id: recordingId, analysis_id: analysisRow.id },
+        })
         .catch((e) =>
           console.error(
             `[analyze-recording bg ${recordingId}] analyze-sentences invoke failed:`,
