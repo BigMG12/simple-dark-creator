@@ -309,10 +309,19 @@ async function processInBackground({
       );
     }
 
-    // Persist transcript early so it survives any later failure
+    // Persist transcript early so it survives any later failure.
+    // Also persist raw Whisper segments+words for chess.com-style per-sentence UI.
     await admin
       .from("recordings")
-      .update({ transcript, duration_seconds: durationSeconds })
+      .update({
+        transcript,
+        duration_seconds: durationSeconds,
+        whisper_segments: {
+          segments: whisperData.segments ?? [],
+          words: whisperData.words ?? [],
+          duration: durationSeconds,
+        },
+      })
       .eq("id", recordingId);
 
     // ── Step 5: Compute raw metrics ─────────────────────────────────────────
@@ -699,6 +708,24 @@ async function processInBackground({
       .from("recordings")
       .update({ status: "complete" })
       .eq("id", recordingId);
+
+    // ── Step 13: Fire-and-forget per-sentence analysis (chess.com-style UI) ─
+    // Nie blokuje success-path; jeśli padnie, główna analiza nadal jest OK.
+    try {
+      admin.functions
+        .invoke("analyze-sentences", { body: { recording_id: recordingId } })
+        .catch((e) =>
+          console.error(
+            `[analyze-recording bg ${recordingId}] analyze-sentences invoke failed:`,
+            e,
+          ),
+        );
+    } catch (e) {
+      console.error(
+        `[analyze-recording bg ${recordingId}] analyze-sentences dispatch threw:`,
+        e,
+      );
+    }
 
     console.log(
       `[analyze-recording bg ${recordingId}] complete — score=${overallScore}`,
