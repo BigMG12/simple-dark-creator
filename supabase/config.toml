@@ -1,5 +1,1 @@
-project_id = "hthjuoswarvsfssxqxxj"
-
-# touch: 2026-04-30T12:30Z r11 P3X8N4 — wymuszamy redeploy bundla
-[functions.analyze-recording]
-verify_jwt = true
+project_id = "pxbzfbhhhrtdvkbrqqfn"
