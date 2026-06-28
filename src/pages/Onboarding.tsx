@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, ArrowRight, SkipForward } from "lucide-react";
 import VSLModal from "@/components/onboarding/VSLModal";
@@ -8,6 +8,10 @@ const HEADLINE_WORDS = ["W", "miejscu", "Twojej", "zmiany."];
 const Onboarding = () => {
   const navigate = useNavigate();
   const [vslOpen, setVslOpen] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.removeItem("bs_needs_onboarding"); } catch {}
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-onboarding-bg text-foreground">
