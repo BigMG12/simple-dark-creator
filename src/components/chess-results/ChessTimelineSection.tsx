@@ -58,6 +58,8 @@ export function ChessTimelineSection({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
       if (selectedIndex === null) return;
       if (e.key === 'j' || e.key === 'ArrowDown') {
         e.preventDefault();

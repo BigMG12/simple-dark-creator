@@ -200,7 +200,7 @@ export default function Results() {
           const sa = analysis.sentence_analyses;
           const hasSentences = Array.isArray(sa) && sa.length > 0;
           const createdAt = result.created_at ? new Date(result.created_at).getTime() : 0;
-          const isFresh = createdAt > 0 && Date.now() - createdAt < 60_000;
+          const isFresh = createdAt > 0 && Date.now() - createdAt < 300_000;
 
           if (hasSentences) {
             return (
