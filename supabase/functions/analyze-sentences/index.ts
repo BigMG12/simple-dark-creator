@@ -342,20 +342,26 @@ Oceń każde i zwróć JSON: { "sentences": [...] }
     throw new Error("GPT-4o response is not an array");
   }
 
-  return sentencesArray.map((s: any, idx: number) => {
+  // Pad/truncate to match input length exactly
+  const aligned: any[] = [];
+  for (let idx = 0; idx < sentences.length; idx++) {
     const original = sentences[idx];
-    return {
+    const s = sentencesArray[idx] || {};
+    const rawScore = typeof s.score === "number" && Number.isFinite(s.score) ? s.score : 50;
+    const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+    aligned.push({
       index: idx,
-      text: s.text || original?.text || "",
+      text: original?.text || s.text || "",
       start_seconds: original?.start_seconds ?? 0,
-      end_seconds: original?.end_seconds ?? 5,
-      score: typeof s.score === "number" ? s.score : 50,
+      end_seconds: original?.end_seconds ?? (original?.start_seconds ?? 0) + 5,
+      score,
       label: ["critical", "weak", "good", "excellent"].includes(s.label)
         ? s.label
-        : "weak",
+        : score >= 85 ? "excellent" : score >= 70 ? "good" : score >= 40 ? "weak" : "critical",
       mentor_commentary: s.mentor_commentary || "",
       alternative: s.alternative || "",
       explanation: s.explanation || "",
-    };
-  });
+    });
+  }
+  return aligned;
 }
