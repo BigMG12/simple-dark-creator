@@ -195,6 +195,51 @@ export default function Results() {
           )}
         </section>
 
+        {/* SEKCJA 1.5 — CHESS TIMELINE (per-zdanie) */}
+        {(() => {
+          const sa = analysis.sentence_analyses;
+          const hasSentences = Array.isArray(sa) && sa.length > 0;
+          const createdAt = result.created_at ? new Date(result.created_at).getTime() : 0;
+          const isFresh = createdAt > 0 && Date.now() - createdAt < 60_000;
+
+          if (hasSentences) {
+            return (
+              <section id="section-chess">
+                <ChessTimelineSection
+                  sentences={sa as unknown as SentenceAnalysis[]}
+                  durationSeconds={result.duration_seconds || 60}
+                  mentorName={mentorName}
+                  mentorAvatar={monogram}
+                  mentorAccentColor={accentColor}
+                  mentorId={speaker?.id || ""}
+                />
+              </section>
+            );
+          }
+
+          if (isFresh) {
+            return (
+              <section
+                id="section-chess-pending"
+                className="card-brutal p-6 md:p-8 text-center space-y-3"
+                style={{ borderLeftColor: accentColor }}
+              >
+                <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                  Per-zdanie analiza tworzy się...
+                </div>
+                <p className="text-base text-muted-foreground max-w-md mx-auto">
+                  Mentor analizuje każde zdanie osobno. Odśwież za chwilę.
+                </p>
+                <Button onClick={() => window.location.reload()} size="sm">
+                  Odśwież
+                </Button>
+              </section>
+            );
+          }
+
+          return null;
+        })()}
+
         {/* SEKCJA 2 — DIAGNOZA */}
         {(analysis.what_was_wrong || analysis.how_to_fix) && (
           <section id="section-2" className="space-y-6">
