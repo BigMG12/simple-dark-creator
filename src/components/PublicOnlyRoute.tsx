@@ -14,7 +14,11 @@ const PublicOnlyRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) return <LoadingSkeleton />;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) {
+    let needsOnboarding = false;
+    try { needsOnboarding = localStorage.getItem("bs_needs_onboarding") === "1"; } catch {}
+    return <Navigate to={needsOnboarding ? "/onboarding" : "/dashboard"} replace />;
+  }
 
   return <Outlet />;
 };
