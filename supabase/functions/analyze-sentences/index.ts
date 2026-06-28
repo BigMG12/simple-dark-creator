@@ -1,276 +1,355 @@
-// supabase/functions/analyze-sentences/index.ts
-// Per-sentence analysis for chess.com-style results UI.
-// Input:  { recording_id: string }
-// Effect: upserts analyses.sentence_analyses (jsonb array) for that recording.
-// Safe to fail — main analyze-recording flow doesn't depend on this.
-
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-interface WhisperSegment {
-  id?: number;
-  start: number;
-  end: number;
-  text: string;
-}
-interface WhisperWord {
-  word: string;
-  start: number;
-  end: number;
-}
-interface WhisperBlob {
-  segments?: WhisperSegment[];
-  words?: WhisperWord[];
-  duration?: number;
-}
-
-interface SentenceAnalysis {
-  index: number;
-  text: string;
-  start: number;
-  end: number;
-  score: number; // 0-100
-  mentor_commentary: string;
-  alternative: string;
-  explanation: string;
-}
-
-/** PL-aware sentence split. Keeps terminators, skips common abbreviations. */
-function splitSentencesPL(input: string): string[] {
-  const text = input.replace(/\s+/g, " ").trim();
-  if (!text) return [];
-  const ABBR = /\b(np|tj|tzn|tzw|itd|itp|m\.in|prof|dr|hab|inż|mgr|św|wg|ok|str|nr|r|w|p|s)\.$/i;
-  const out: string[] = [];
-  let buf = "";
-  for (let i = 0; i < text.length; i++) {
-    buf += text[i];
-    const ch = text[i];
-    if (ch === "." || ch === "!" || ch === "?") {
-      const next = text[i + 1];
-      if (!next || next === " ") {
-        const trimmed = buf.trim();
-        if (ABBR.test(trimmed)) continue;
-        if (trimmed.length > 0) out.push(trimmed);
-        buf = "";
-      }
-    }
-  }
-  const tail = buf.trim();
-  if (tail.length > 0) out.push(tail);
-  return out;
-}
-
-/** Map sentence to [start,end] via Whisper words (fuzzy by token order). */
-function matchTimestamps(
-  sentence: string,
-  words: WhisperWord[],
-  cursor: { i: number },
-): { start: number; end: number } {
-  const tokens = sentence
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s']/gu, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-  if (tokens.length === 0 || words.length === 0) {
-    return { start: 0, end: 0 };
-  }
-  let startIdx = -1;
-  let endIdx = -1;
-  let matched = 0;
-  const need = Math.max(1, Math.floor(tokens.length * 0.6));
-  for (let i = cursor.i; i < words.length && matched < tokens.length; i++) {
-    const w = words[i].word.toLowerCase().replace(/[^\p{L}\p{N}']/gu, "");
-    if (!w) continue;
-    if (w === tokens[matched] || tokens[matched].startsWith(w) || w.startsWith(tokens[matched])) {
-      if (startIdx === -1) startIdx = i;
-      endIdx = i;
-      matched++;
-    }
-  }
-  if (matched >= need && startIdx !== -1 && endIdx !== -1) {
-    cursor.i = endIdx + 1;
-    return { start: words[startIdx].start, end: words[endIdx].end };
-  }
-  // Fallback: proportional slice based on cursor progress.
-  const fallbackStart = words[Math.min(cursor.i, words.length - 1)]?.start ?? 0;
-  const fallbackEnd =
-    words[Math.min(cursor.i + tokens.length, words.length - 1)]?.end ?? fallbackStart;
-  cursor.i = Math.min(cursor.i + tokens.length, words.length);
-  return { start: fallbackStart, end: fallbackEnd };
-}
-
-async function gptPerSentence(
-  apiKey: string,
-  sentences: { index: number; text: string }[],
-  mentorPersona: unknown,
-): Promise<
-  Record<number, { score: number; mentor_commentary: string; alternative: string; explanation: string }>
-> {
-  const sys = `Jesteś mentorem mówcy. Oceniasz POJEDYNCZE zdania nagrania użytkownika z perspektywy poniższej persony mentora.
-Dla KAŻDEGO zdania zwróć: score (0-100), mentor_commentary (1-2 zdania, ostro i konkretnie, po polsku, w głosie mentora), alternative (jak mentor powiedziałby to zdanie, po polsku), explanation (1 zdanie — dlaczego ta wersja jest lepsza).
-Persona mentora (JSON): ${JSON.stringify(mentorPersona ?? {}).slice(0, 4000)}
-Odpowiedz WYŁĄCZNIE jako JSON: { "items": [ { "index": <number>, "score": <number>, "mentor_commentary": "...", "alternative": "...", "explanation": "..." } ] }`;
-
-  const user = `Zdania do oceny:\n${sentences.map((s) => `[${s.index}] ${s.text}`).join("\n")}`;
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`OpenAI error ${res.status}: ${body}`);
-  }
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content ?? "{}";
-  const parsed = JSON.parse(content);
-  const map: Record<number, { score: number; mentor_commentary: string; alternative: string; explanation: string }> = {};
-  for (const it of parsed.items ?? []) {
-    if (typeof it?.index === "number") {
-      map[it.index] = {
-        score: Math.max(0, Math.min(100, Number(it.score) || 0)),
-        mentor_commentary: String(it.mentor_commentary ?? ""),
-        alternative: String(it.alternative ?? ""),
-        explanation: String(it.explanation ?? ""),
-      };
-    }
-  }
-  return map;
-}
+/**
+ * analyze-sentences
+ *
+ * Wywoływana fire-and-forget przez analyze-recording.
+ * Generuje per-zdanie chess-style analysis.
+ */
+import {
+  createAdminClient,
+  jsonError,
+  jsonOk,
+  CORS_HEADERS,
+} from "../_shared/supabase-admin.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+  if (req.method !== "POST") {
+    return jsonError("Method not allowed", 405);
   }
 
   try {
-    const { recording_id } = await req.json().catch(() => ({}));
-    if (!recording_id || typeof recording_id !== "string") {
-      return new Response(
-        JSON.stringify({ error: "recording_id required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const body = await req.json();
+    const { recording_id, analysis_id } = body;
+    if (!recording_id || !analysis_id) {
+      return jsonError("Missing recording_id or analysis_id", 400);
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) throw new Error("OPENAI_API_KEY missing");
+    const admin = createAdminClient();
 
-    const admin = createClient(supabaseUrl, serviceKey);
-
-    const { data: rec, error: recErr } = await admin
+    // 1. Recording
+    const { data: recording, error: recErr } = await admin
       .from("recordings")
-      .select("id, transcript, whisper_segments")
+      .select("id, transcript, whisper_segments, duration_seconds, topic")
       .eq("id", recording_id)
       .single();
-    if (recErr || !rec) throw new Error(`recording not found: ${recErr?.message}`);
-
-    const whisper = (rec.whisper_segments ?? {}) as WhisperBlob;
-    const words = whisper.words ?? [];
-    const transcript = (rec.transcript ?? "").trim();
-    if (!transcript) {
-      return new Response(JSON.stringify({ ok: true, skipped: "empty transcript" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (recErr || !recording) {
+      console.error("[analyze-sentences] Recording fetch failed:", recErr);
+      return jsonError("Recording not found", 404);
+    }
+    if (!recording.transcript || recording.transcript.length < 10) {
+      return jsonError("No transcript to analyze", 400);
     }
 
-    const { data: analysisRow, error: aErr } = await admin
+    // 2. Analysis
+    const { data: analysis, error: anaErr } = await admin
       .from("analyses")
-      .select("id, mentor_persona_snapshot, sentence_analyses")
-      .eq("recording_id", recording_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (aErr || !analysisRow) {
-      throw new Error(`analysis not found for recording: ${aErr?.message}`);
-    }
-    if (analysisRow.sentence_analyses) {
-      return new Response(JSON.stringify({ ok: true, skipped: "already analyzed" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      .select(
+        "id, mentor_persona_snapshot, overall_score, compared_to_speaker_id",
+      )
+      .eq("id", analysis_id)
+      .single();
+    if (anaErr || !analysis) {
+      console.error("[analyze-sentences] Analysis fetch failed:", anaErr);
+      return jsonError("Analysis not found", 404);
     }
 
-    // 1) Split sentences
-    const rawSentences = splitSentencesPL(transcript);
-    if (rawSentences.length === 0) {
-      return new Response(JSON.stringify({ ok: true, skipped: "no sentences" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // 3. Split sentences
+    const sentences = splitIntoSentences(recording.transcript);
+    if (sentences.length === 0) {
+      console.warn("[analyze-sentences] No sentences extracted");
+      return jsonOk({ sentences: [] });
     }
+    console.log(`[analyze-sentences] Extracted ${sentences.length} sentences`);
 
-    // 2) Match timestamps
-    const cursor = { i: 0 };
-    const withTimes = rawSentences.map((text, index) => {
-      const { start, end } = matchTimestamps(text, words, cursor);
-      return { index, text, start, end };
-    });
-
-    // 3) GPT per-sentence (single call, batched)
-    const gptMap = await gptPerSentence(
-      openaiKey,
-      withTimes.map(({ index, text }) => ({ index, text })),
-      analysisRow.mentor_persona_snapshot,
+    // 4. Timestamps
+    const sentencesWithTimestamps = matchSentencesWithSegments(
+      sentences,
+      (recording.whisper_segments as any[]) || [],
     );
 
-    // 4) Compose final array
-    const sentence_analyses: SentenceAnalysis[] = withTimes.map((s) => {
-      const g = gptMap[s.index] ?? {
-        score: 50,
-        mentor_commentary: "",
-        alternative: "",
-        explanation: "",
-      };
-      return {
-        index: s.index,
-        text: s.text,
-        start: s.start,
-        end: s.end,
-        score: g.score,
-        mentor_commentary: g.mentor_commentary,
-        alternative: g.alternative,
-        explanation: g.explanation,
-      };
-    });
+    // 5. GPT-4o
+    const mentorDNA = analysis.mentor_persona_snapshot;
+    if (!mentorDNA) {
+      return jsonError("No mentor DNA in analysis", 500);
+    }
 
-    const { error: upErr } = await admin
-      .from("analyses")
-      .update({ sentence_analyses })
-      .eq("id", analysisRow.id);
-    if (upErr) throw new Error(`update failed: ${upErr.message}`);
-
-    return new Response(
-      JSON.stringify({ ok: true, count: sentence_analyses.length }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    const analyzed = await analyzeSentencesWithGPT4o(
+      sentencesWithTimestamps,
+      mentorDNA,
+      recording.topic,
     );
+
+    // 6. Save
+    const { error: updateErr } = await admin
+      .from("analyses")
+      .update({ sentence_analyses: analyzed })
+      .eq("id", analysis_id);
+    if (updateErr) {
+      console.error("[analyze-sentences] Save failed:", updateErr);
+      return jsonError("Failed to save sentence analyses", 500);
+    }
+
+    console.log(
+      `[analyze-sentences] Saved ${analyzed.length} sentence analyses`,
+    );
+    return jsonOk({ count: analyzed.length });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[analyze-sentences] error:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[analyze-sentences] Fatal error:", err);
+    return jsonError((err as Error).message || "Unknown error", 500);
   }
 });
+
+// ──────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────
+
+function splitIntoSentences(text: string): string[] {
+  const abbreviations = [
+    "p\\.", "dr\\.", "mgr\\.", "prof\\.", "np\\.", "tj\\.", "tzn\\.",
+    "m\\.in\\.", "tzw\\.", "św\\.", "inż\\.", "mgr inż\\.",
+    "ul\\.", "al\\.", "pl\\.", "os\\.", "nr\\.", "r\\.", "wg\\.",
+  ];
+
+  let protectedText = text;
+  abbreviations.forEach((abbr, idx) => {
+    const regex = new RegExp(abbr, "gi");
+    protectedText = protectedText.replace(regex, `__ABBR_${idx}__`);
+  });
+
+  const rawSentences = protectedText
+    .split(/(?<=[.!?])\s+(?=[A-ZŚĆĘŁŃÓŻŹ])/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3);
+
+  const sentences = rawSentences.map((s) => {
+    let restored = s;
+    abbreviations.forEach((abbr, idx) => {
+      restored = restored.replace(
+        new RegExp(`__ABBR_${idx}__`, "g"),
+        abbr.replace(/\\/g, ""),
+      );
+    });
+    return restored;
+  });
+
+  if (sentences.length === 0 && text.trim().length > 0) {
+    return [text.trim()];
+  }
+  return sentences;
+}
+
+interface SentenceWithTime {
+  index: number;
+  text: string;
+  start_seconds: number;
+  end_seconds: number;
+}
+
+function matchSentencesWithSegments(
+  sentences: string[],
+  segments: any[],
+): SentenceWithTime[] {
+  if (!segments || segments.length === 0) {
+    const totalDuration = 60;
+    const slotDuration = totalDuration / sentences.length;
+    return sentences.map((text, idx) => ({
+      index: idx,
+      text,
+      start_seconds: Math.round(idx * slotDuration),
+      end_seconds: Math.round((idx + 1) * slotDuration),
+    }));
+  }
+
+  let fullText = "";
+  const segmentBoundaries: {
+    start: number;
+    end: number;
+    segStart: number;
+    segEnd: number;
+  }[] = [];
+
+  for (const seg of segments) {
+    const startChar = fullText.length;
+    fullText += seg.text + " ";
+    const endChar = fullText.length;
+    segmentBoundaries.push({
+      start: startChar,
+      end: endChar,
+      segStart: seg.start,
+      segEnd: seg.end,
+    });
+  }
+
+  const result: SentenceWithTime[] = [];
+  let searchFromChar = 0;
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    const firstWords = sentence.split(" ").slice(0, 4).join(" ");
+    const charPos = fullText
+      .toLowerCase()
+      .indexOf(firstWords.toLowerCase(), searchFromChar);
+
+    let startSeconds = 0;
+    let endSeconds = 0;
+
+    if (charPos !== -1) {
+      const startSeg = segmentBoundaries.find(
+        (sb) => sb.start <= charPos && charPos < sb.end,
+      );
+      if (startSeg) startSeconds = startSeg.segStart;
+
+      const lastWords = sentence.split(" ").slice(-3).join(" ");
+      const endCharPos = fullText
+        .toLowerCase()
+        .indexOf(lastWords.toLowerCase(), charPos + firstWords.length);
+
+      if (endCharPos !== -1) {
+        const endSeg = segmentBoundaries.find(
+          (sb) => sb.start <= endCharPos && endCharPos < sb.end,
+        );
+        if (endSeg) endSeconds = endSeg.segEnd;
+      } else {
+        if (i + 1 < sentences.length) {
+          endSeconds = startSeconds + 5;
+        } else {
+          endSeconds =
+            segments[segments.length - 1]?.end || startSeconds + 5;
+        }
+      }
+      searchFromChar = charPos + firstWords.length;
+    } else {
+      const totalDuration = segments[segments.length - 1]?.end || 60;
+      const slotDuration = totalDuration / sentences.length;
+      startSeconds = Math.round(i * slotDuration);
+      endSeconds = Math.round((i + 1) * slotDuration);
+    }
+
+    result.push({
+      index: i,
+      text: sentence,
+      start_seconds: Math.round(startSeconds * 100) / 100,
+      end_seconds: Math.round(endSeconds * 100) / 100,
+    });
+  }
+
+  return result;
+}
+
+async function analyzeSentencesWithGPT4o(
+  sentences: SentenceWithTime[],
+  mentorDNA: any,
+  topic: string | null,
+): Promise<any[]> {
+  const mentorName =
+    mentorDNA.LAYER_1_identity?.name ||
+    mentorDNA.identity?.name ||
+    "Mentor";
+
+  const systemPrompt = `
+Jesteś ${mentorName}.
+
+TWOJE 12-WARSTWOWE DNA:
+${JSON.stringify(mentorDNA, null, 2).slice(0, 6000)}
+
+ZADANIE: Oceń KAŻDE zdanie usera per-sentence. To jest jak chess.com — pokazujesz dokładnie GDZIE był error i jak to poprawić, zdanie po zdaniu.
+
+DLA KAŻDEGO ZDANIA zwróć JSON:
+{
+  "index": <int>,
+  "text": "<oryginalne zdanie>",
+  "start_seconds": <float>,
+  "end_seconds": <float>,
+  "score": <int 0-100>,
+  "label": "critical" | "weak" | "good" | "excellent",
+  "mentor_commentary": "<2-3 zdania W TWOIM STYLU po polsku>",
+  "alternative": "<jak BY POWIEDZIAŁ TO MENTOR — konkretna alternatywa>",
+  "explanation": "<dlaczego to ważne — 1-2 zdania>"
+}
+
+RUBRYKA SCORING (rygorystycznie):
+- excellent (85+): mocne otwarcie, konkretna liczba/fakt, pewność, signature move tego mentora
+- good (70-84): solidne, na temat, bez błędów, ale brak iskry
+- weak (40-69): fillery, niepewność, vague, "myślę że", "może"
+- critical (<40): 3+ fillery, "super fajne", "naprawdę", "dla każdego", brak treści
+
+TON KOMENTARZY: ŚCIŚLE W STYLU MENTORA (z LAYER_3_linguistic_DNA, LAYER_7_feedback_DNA, LAYER_12_polish_adaptations).
+Steve Jobs mówi "Wytnij. Wytnij więcej.", Goggins "Wymiękłeś. Wstawaj.", Voss "Co przed chwilą zrobiłeś?".
+NIE używaj fraz z LAYER_11.things_*_NEVER_say.
+
+ZWRÓĆ TYLKO JSON ARRAY (bez markdown), z dokładnie ${sentences.length} elementami.
+`;
+
+  const userPrompt = `
+TEMAT NAGRANIA: ${topic || "Brak"}
+
+ZDANIA DO ANALIZY:
+${sentences
+  .map(
+    (s) =>
+      `[${s.index}] (${s.start_seconds}s-${s.end_seconds}s): "${s.text}"`,
+  )
+  .join("\n")}
+
+Oceń każde i zwróć JSON: { "sentences": [...] }
+`;
+
+  const openaiResponse = await fetch(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        temperature: 0.6,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    },
+  );
+
+  if (!openaiResponse.ok) {
+    const errText = await openaiResponse.text();
+    console.error("[analyze-sentences] GPT-4o failed:", errText);
+    throw new Error("GPT-4o request failed");
+  }
+
+  const data = await openaiResponse.json();
+  let parsed;
+  try {
+    parsed = JSON.parse(data.choices[0].message.content);
+  } catch (e) {
+    console.error("[analyze-sentences] JSON parse failed:", e);
+    throw new Error("Malformed GPT-4o response");
+  }
+
+  const sentencesArray = parsed.sentences || parsed.array || parsed;
+  if (!Array.isArray(sentencesArray)) {
+    throw new Error("GPT-4o response is not an array");
+  }
+
+  return sentencesArray.map((s: any, idx: number) => {
+    const original = sentences[idx];
+    return {
+      index: idx,
+      text: s.text || original?.text || "",
+      start_seconds: original?.start_seconds ?? 0,
+      end_seconds: original?.end_seconds ?? 5,
+      score: typeof s.score === "number" ? s.score : 50,
+      label: ["critical", "weak", "good", "excellent"].includes(s.label)
+        ? s.label
+        : "weak",
+      mentor_commentary: s.mentor_commentary || "",
+      alternative: s.alternative || "",
+      explanation: s.explanation || "",
+    };
+  });
+}
