@@ -23,6 +23,8 @@ import { useResults } from "@/hooks/queries";
 import { useTrajectory } from "@/hooks/queries/useTrajectory";
 import { TrajectorySection } from "@/components/results/TrajectorySection";
 import { LearnSection } from "@/components/results/LearnSection";
+import { ChessTimelineSection } from "@/components/chess-results/ChessTimelineSection";
+import type { SentenceAnalysis } from "@/components/chess-results/types";
 import { SPEAKERS } from "@/data/speakers";
 import { CATEGORY_BY_ID } from "@/data/categories";
 
