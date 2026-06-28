@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,6 +25,7 @@ type Values = z.infer<typeof schema>;
 
 const SignUpForm = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -32,8 +34,11 @@ const SignUpForm = () => {
 
   const onSubmit = async (v: Values) => {
     setLoading(true);
-    await signUpWithEmail(v.email, v.password, v.fullName);
+    // Mark new-user flag BEFORE signup so PublicOnlyRoute redirects to /onboarding instead of /dashboard.
+    try { localStorage.setItem("bs_needs_onboarding", "1"); } catch {}
+    const ok = await signUpWithEmail(v.email, v.password, v.fullName);
     setLoading(false);
+    if (ok) navigate("/onboarding", { replace: true });
   };
 
   return (
