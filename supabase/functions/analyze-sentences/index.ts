@@ -63,10 +63,16 @@ Deno.serve(async (req) => {
     }
     console.log(`[analyze-sentences] Extracted ${sentences.length} sentences`);
 
-    // 4. Timestamps
+    // 4. Timestamps — whisper_segments stored as { segments, words, duration }
+    const ws = recording.whisper_segments as any;
+    const segmentsArray: any[] = Array.isArray(ws)
+      ? ws
+      : Array.isArray(ws?.segments)
+        ? ws.segments
+        : [];
     const sentencesWithTimestamps = matchSentencesWithSegments(
       sentences,
-      (recording.whisper_segments as any[]) || [],
+      segmentsArray,
     );
 
     // 5. GPT-4o
