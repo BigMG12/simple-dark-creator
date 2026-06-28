@@ -39,35 +39,35 @@ export async function signUpWithEmail(
   fullName: string
 ): Promise<boolean> {
   if (!hasSupabaseConfig) return notConfigured();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-      emailRedirectTo: `${window.location.origin}/onboarding`,
-    },
+
+  // Tworzymy usera przez edge function z service_role (email_confirm: true),
+  // żeby ominąć ustawienie "Confirm email" w panelu Supabase Auth.
+  const { data: signupResult, error: signupError } = await supabase.functions.invoke<{
+    user_id?: string;
+    email?: string;
+    error?: string;
+  }>("signup-confirmed", {
+    body: { email, password, full_name: fullName },
   });
 
-  if (error) {
-    toast.error("Rejestracja nie powiodła się", { description: friendlyMessage(error) });
+  if (signupError || signupResult?.error) {
+    const message = signupResult?.error ?? signupError?.message ?? "unknown";
+    toast.error("Rejestracja nie powiodła się", {
+      description: friendlyMessage(new Error(message)),
+    });
     return false;
   }
 
-  // Wyślij maila powitalnego (fire-and-forget — błąd nie blokuje rejestracji).
+  // Mail powitalny — fire-and-forget.
   supabase.functions
     .invoke("send-welcome-email", {
-      body: { email, name: fullName, user_id: data.user?.id },
+      body: { email, name: fullName, user_id: signupResult?.user_id },
     })
     .catch((err) => {
       console.warn("send-welcome-email invoke failed:", err);
     });
 
-  // Email confirm wyłączony — od razu logujemy użytkownika.
-  if (data.session) {
-    toast.success("Konto utworzone!", { description: "Witamy w Big Speaking 🔥" });
-    return true;
-  }
-
+  // Auto-login — user już istnieje z potwierdzonym mailem.
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
   if (signInError) {
     toast.error("Logowanie po rejestracji nie powiodło się", {
