@@ -62,8 +62,7 @@ export async function signUpWithEmail(
       console.warn("send-welcome-email invoke failed:", err);
     });
 
-  // Auto-login: jeśli potwierdzanie email jest wyłączone, signUp zwraca sesję od razu.
-  // Jeśli sesji nie ma, próbujemy zalogować jawnie (zadziała tylko gdy email confirm = off).
+  // Email confirm wyłączony — od razu logujemy użytkownika.
   if (data.session) {
     toast.success("Konto utworzone!", { description: "Witamy w Big Speaking 🔥" });
     return true;
@@ -71,10 +70,10 @@ export async function signUpWithEmail(
 
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
   if (signInError) {
-    toast.success("Konto utworzone!", {
-      description: "Sprawdź swoją skrzynkę i potwierdź email, aby się zalogować.",
+    toast.error("Logowanie po rejestracji nie powiodło się", {
+      description: friendlyMessage(signInError),
     });
-    return true;
+    return false;
   }
 
   toast.success("Konto utworzone!", { description: "Witamy w Big Speaking 🔥" });
