@@ -1,5 +1,19 @@
 export type SentenceLabel = 'critical' | 'weak' | 'good' | 'excellent';
 
+export interface ProsodyEmotionBar {
+  name: string;
+  polish_name: string;
+  score: number;
+}
+
+export interface SentenceProsody {
+  top_emotion: string | null;
+  top_emotion_score: number;
+  emoji: string;
+  tag: string;
+  emotions_top5: ProsodyEmotionBar[];
+}
+
 export interface SentenceAnalysis {
   index: number;
   text: string;
@@ -10,6 +24,7 @@ export interface SentenceAnalysis {
   mentor_commentary: string;
   alternative: string;
   explanation: string;
+  prosody?: SentenceProsody | null;
 }
 
 export interface AltMentorPerspective {
