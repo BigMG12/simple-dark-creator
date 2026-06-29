@@ -63,7 +63,7 @@ export function SentenceCard({
             </span>
             {sentence.prosody?.top_emotion && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-card rounded-full normal-case tracking-normal">
-                <span className="text-sm leading-none">{sentence.prosody.emoji}</span>
+                <AppleEmoji emoji={sentence.prosody.emoji} size={14} />
                 <span className="text-muted-foreground">{sentence.prosody.tag}</span>
               </span>
             )}
