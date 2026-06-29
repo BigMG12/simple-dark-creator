@@ -212,6 +212,7 @@ export default function Results() {
                   mentorAvatar={monogram}
                   mentorAccentColor={accentColor}
                   mentorId={speaker?.id || ""}
+                  prosodyRadar={(analysis.prosody_radar as Record<string, number> | null) ?? null}
                 />
               </section>
             );
