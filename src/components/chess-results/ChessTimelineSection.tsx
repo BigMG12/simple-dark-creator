@@ -3,6 +3,7 @@ import { SentenceAnalysis } from './types';
 import { QualityMiniMap } from './QualityMiniMap';
 import { SentenceCard } from './SentenceCard';
 import { MentorSwitcher } from './MentorSwitcher';
+import { ProsodyRadar } from './prosody/ProsodyRadar';
 
 interface Props {
   sentences: SentenceAnalysis[];
@@ -11,6 +12,7 @@ interface Props {
   mentorAvatar: string;
   mentorAccentColor?: string;
   mentorId: string;
+  prosodyRadar?: Record<string, number> | null;
   availableMentors?: Array<{
     id: string;
     name: string;
@@ -28,6 +30,7 @@ export function ChessTimelineSection({
   mentorAvatar,
   mentorAccentColor,
   mentorId,
+  prosodyRadar,
   availableMentors = [],
   onMentorSwitch,
   switchingMentor = false,
@@ -95,6 +98,20 @@ export function ChessTimelineSection({
           {sentences.length} zdań · Kliknij na mapie lub w liście
         </p>
       </div>
+
+      {prosodyRadar ? (
+        <ProsodyRadar radar={prosodyRadar} />
+      ) : (
+        <div className="p-4 bg-card/30 rounded-xl border border-dashed border-border/40 text-center">
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-1">
+            Voice Intelligence
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Analiza głosu w toku... Odśwież za chwilę.
+          </p>
+        </div>
+      )}
+
 
       <QualityMiniMap
         sentences={sentences}

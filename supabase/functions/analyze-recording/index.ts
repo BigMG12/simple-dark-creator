@@ -729,6 +729,25 @@ async function processInBackground({
       );
     }
 
+    // ── Step 13b: Fire-and-forget Hume prosody analysis ─────────────────────
+    try {
+      admin.functions
+        .invoke("analyze-prosody", {
+          body: { recording_id: recordingId, analysis_id: analysisRow.id },
+        })
+        .catch((e) =>
+          console.error(
+            `[analyze-recording bg ${recordingId}] analyze-prosody invoke failed:`,
+            e,
+          ),
+        );
+    } catch (e) {
+      console.error(
+        `[analyze-recording bg ${recordingId}] analyze-prosody dispatch threw:`,
+        e,
+      );
+    }
+
     console.log(
       `[analyze-recording bg ${recordingId}] complete — score=${overallScore}`,
     );
