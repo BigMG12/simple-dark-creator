@@ -12,6 +12,7 @@ interface Props {
   mentorAvatar: string;
   mentorAccentColor?: string;
   mentorId: string;
+  prosodyRadar?: Record<string, number> | null;
   availableMentors?: Array<{
     id: string;
     name: string;
@@ -21,6 +22,19 @@ interface Props {
   onMentorSwitch?: (mentorId: string) => void;
   switchingMentor?: boolean;
 }
+
+export function ChessTimelineSection({
+  sentences,
+  durationSeconds,
+  mentorName,
+  mentorAvatar,
+  mentorAccentColor,
+  mentorId,
+  prosodyRadar,
+  availableMentors = [],
+  onMentorSwitch,
+  switchingMentor = false,
+}: Props) {
 
 export function ChessTimelineSection({
   sentences,
