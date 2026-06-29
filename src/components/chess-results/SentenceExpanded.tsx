@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SentenceAnalysis } from './types';
+import { ProsodyBars } from './prosody/ProsodyBars';
 import { Sparkles, Lightbulb, ArrowRight } from 'lucide-react';
 
 interface Props {
