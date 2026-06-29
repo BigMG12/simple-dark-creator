@@ -3,6 +3,7 @@ import { SentenceAnalysis } from './types';
 import { QualityMiniMap } from './QualityMiniMap';
 import { SentenceCard } from './SentenceCard';
 import { MentorSwitcher } from './MentorSwitcher';
+import { ProsodyRadar } from './prosody/ProsodyRadar';
 
 interface Props {
   sentences: SentenceAnalysis[];
