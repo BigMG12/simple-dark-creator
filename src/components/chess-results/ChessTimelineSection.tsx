@@ -35,18 +35,6 @@ export function ChessTimelineSection({
   onMentorSwitch,
   switchingMentor = false,
 }: Props) {
-
-export function ChessTimelineSection({
-  sentences,
-  durationSeconds,
-  mentorName,
-  mentorAvatar,
-  mentorAccentColor,
-  mentorId,
-  availableMentors = [],
-  onMentorSwitch,
-  switchingMentor = false,
-}: Props) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const sentenceRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
