@@ -1,51 +1,34 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const rawUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
-const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+/**
+ * ⚠️  HARDCODED REAL BACKEND — DO NOT REPLACE WITH import.meta.env READS.
+ *
+ * Tło: Lovable Cloud jest WŁĄCZONA na tym projekcie i nie da się jej wyłączyć.
+ * Platforma nadpisuje `.env` (VITE_SUPABASE_URL / _ANON_KEY / _PROJECT_ID /
+ * _PUBLISHABLE_KEY) wartościami pustego projektu Cloud `pxbzfbhhhrtdvkbrqqfn`
+ * przy każdym restarcie / reconnect. Wszystkie dane, konta, edge functions
+ * i migracje żyją na zewnętrznym projekcie `hthjuoswarvsfssxqxxj`.
+ *
+ * Żeby front zawsze trafiał w prawdziwy backend — niezależnie od stanu `.env`
+ * — URL i publishable key są tu HARDCODED. Publishable key jest bezpieczny
+ * w kodzie (to nie service role).
+ *
+ * Jeśli kiedyś migrujesz na Cloud, to wtedy (i tylko wtedy) wróć do
+ * `import.meta.env.*`. Do tego czasu — ZOSTAW.
+ */
+const REAL_SUPABASE_URL = "https://hthjuoswarvsfssxqxxj.supabase.co";
+const REAL_SUPABASE_PUBLISHABLE_KEY = "sb_publishable__gOJ0v5RrfqBBOwhzlxG9g_nC3pYfQC";
 
-function isValidSupabaseUrl(value: string | undefined): value is string {
-  if (!value) return false;
-  if (value.includes("YOUR-PROJECT-REF") || value.includes("placeholder")) return false;
-  try {
-    const u = new URL(value);
-    if (u.protocol !== "https:") return false;
-    // Accept *.supabase.co or *.supabase.in (custom domains rare here)
-    if (!/\.supabase\.(co|in)$/i.test(u.hostname)) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
+export const hasSupabaseConfig = true;
 
-function isValidKey(value: string | undefined): value is string {
-  if (!value) return false;
-  if (value.includes("YOUR-ANON-KEY") || value.includes("placeholder")) return false;
-  // Accept legacy JWT (eyJ...) or new publishable keys (sb_publishable_...)
-  return value.length > 20;
-}
-
-export const hasSupabaseConfig = isValidSupabaseUrl(rawUrl) && isValidKey(rawKey);
-
-if (!hasSupabaseConfig && typeof window !== "undefined") {
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[supabase] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY are missing or invalid. " +
-      "Auth & backend features are disabled until you set valid values in Workspace Settings → Build Secrets. " +
-      `Current URL valid: ${isValidSupabaseUrl(rawUrl)}, key valid: ${isValidKey(rawKey)}`
-  );
-}
-
-function createSafeClient(): SupabaseClient {
-  if (hasSupabaseConfig) {
-    try {
-      return createClient(rawUrl!, rawKey!);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("[supabase] createClient failed, falling back to placeholder.", err);
-    }
-  }
-  // Always return a benign placeholder so module import never throws.
-  return createClient("https://placeholder.supabase.co", "placeholder-anon-key");
-}
-
-export const supabase: SupabaseClient = createSafeClient();
+export const supabase: SupabaseClient = createClient(
+  REAL_SUPABASE_URL,
+  REAL_SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  },
+);
