@@ -90,6 +90,9 @@ export function SentenceExpanded({
           onClick={onNext}
         />
       </div>
+      {sentence.prosody?.emotions_top5 && sentence.prosody.emotions_top5.length > 0 && (
+        <ProsodyBars emotions={sentence.prosody.emotions_top5} />
+      )}
     </div>
   );
 }
