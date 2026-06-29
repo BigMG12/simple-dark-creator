@@ -52,7 +52,7 @@ export function SentenceCard({
           <p className="text-base md:text-lg leading-snug">
             "{sentence.text}"
           </p>
-          <div className="flex items-center gap-2 mt-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             <span>
               {formatTime(sentence.start_seconds)} — {formatTime(sentence.end_seconds)}
             </span>
@@ -60,6 +60,12 @@ export function SentenceCard({
             <span style={{ color: colors.hex }} className="font-semibold">
               {colors.text} · {sentence.score}/100
             </span>
+            {sentence.prosody?.top_emotion && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-card rounded-full normal-case tracking-normal">
+                <span className="text-sm leading-none">{sentence.prosody.emoji}</span>
+                <span className="text-muted-foreground">{sentence.prosody.tag}</span>
+              </span>
+            )}
           </div>
         </div>
       </button>
