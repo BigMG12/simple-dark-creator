@@ -99,6 +99,20 @@ export function ChessTimelineSection({
         </p>
       </div>
 
+      {prosodyRadar ? (
+        <ProsodyRadar radar={prosodyRadar} />
+      ) : (
+        <div className="p-4 bg-card/30 rounded-xl border border-dashed border-border/40 text-center">
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-1">
+            Voice Intelligence
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Analiza głosu w toku... Odśwież za chwilę.
+          </p>
+        </div>
+      )}
+
+
       <QualityMiniMap
         sentences={sentences}
         durationSeconds={durationSeconds}
