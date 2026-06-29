@@ -1,5 +1,6 @@
 import { SentenceAnalysis, LABEL_COLORS } from './types';
 import { SentenceExpanded } from './SentenceExpanded';
+import { AppleEmoji } from './prosody/AppleEmoji';
 
 interface Props {
   sentence: SentenceAnalysis;
