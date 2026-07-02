@@ -249,6 +249,7 @@ export default function ConversationsNew() {
     setUploadedPath(null);
     setDurationSec(null);
     setFileError(null);
+    setUploadAttempt(0);
   };
 
   // ────────────────────────────────────────────────────────────────
