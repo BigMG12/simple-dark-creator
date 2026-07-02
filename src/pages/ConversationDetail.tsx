@@ -181,9 +181,31 @@ export default function ConversationDetail() {
   const { id = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const { data: result, isLoading } = useConversationResult(id);
-  const [analyzing, setAnalyzing] = useState(params.get("analyzing") === "1");
+  const status = result?.status;
+  const isProcessing =
+    status === "pending" ||
+    status === "diarizing" ||
+    status === "awaiting_speaker_selection" ||
+    status === "analyzing";
+  const [analyzing, setAnalyzing] = useState(
+    params.get("analyzing") === "1" || (!!status && isProcessing),
+  );
   const [showOther, setShowOther] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+
+  // Auto-dismiss the overlay only once the backend actually finished.
+  useEffect(() => {
+    if (status === "complete" || status === "failed") {
+      setAnalyzing(false);
+      if (params.get("analyzing")) {
+        params.delete("analyzing");
+        setParams(params, { replace: true });
+      }
+    } else if (isProcessing) {
+      setAnalyzing(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Mapowanie danych z backendu na format UI
   const c = useMemo(() => {
@@ -215,14 +237,15 @@ export default function ConversationDetail() {
       transcript: result.transcript || [],
       scorecard: result.radar_data || [],
       recommendedDrills: [], // Backend nie ma jeszcze recommended drills
+      status: result.status,
+      errorMessage: result.error_message,
     };
   }, [result]);
 
   const onAnalyzeDone = () => {
-    setAnalyzing(false);
-    params.delete("analyzing");
-    setParams(params, { replace: true });
+    // No-op: the effect above closes the overlay once status flips.
   };
+
 
   const scrollToLine = (start: number) => {
     const el = transcriptRef.current?.querySelector<HTMLElement>(`[data-start="${start}"]`);
