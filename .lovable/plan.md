@@ -1,61 +1,94 @@
 
-# Fix: Rozmowy — ConversationDetail nie działa
+## Cel
 
-## Diagnoza (potwierdzona)
+Zakładka wyniku rozmowy (`/conversations/:id`) ma wyglądać jak topowa wersja review zadań (`Results.tsx`): brutal/premium hero, mentor monogram, sekcje numerowane, cytat werdyktu, kolorowy akcent per typ, chess-style timeline z klikalnymi eventami zamiast płaskiej listy kart.
 
-Migracja `supabase/migrations/20260702151755_863b7625-08af-47dd-82f8-00ce0a8bd9d6.sql` (tworzy `conversations` + `conversation_analyses` + RLS + GRANT) **istnieje w repo, ale nie została zaaplikowana na projekcie `hthjuoswarvsfssxqxxj`** (real backend), tylko na Lovable Cloud `pxbzfbhhhrtdvkbrqqfn` (pusty).
+## Krok 1 — Persony per typ rozmowy
 
-Twardy dowód: `GET /rest/v1/conversations?select=error_message` na `hthjuoswarvsfssxqxxj` zwraca:
+Rozbudować `src/data/conversationTypes.ts` o `monogram`, `mentorName`, `accentVar` (już mamy `accent`, wyekstrahujemy klucz), `verdictKicker`:
+
+```text
+sales        → "SP"  · "Sprzedawca"     · category-sales
+meeting      → "OP"  · "Operator"        · category-influence
+interviewee  → "KA"  · "Kandydat"        · category-authority
+interviewer  → "PR"  · "Prowadzący"      · category-authority
+negotiation  → "NG"  · "Negocjator"      · category-influence
+coaching     → "CO"  · "Coach"           · category-leadership
 ```
-{"code":"42703","message":"column conversations.error_message does not exist"}
+
+## Krok 2 — Nowy layout `ConversationDetail.tsx`
+
+Zachowujemy całą logikę danych (`useConversationResult`, mapping, `AnalyzingOverlay`, `scrollToLine`, `showOther`). Zmieniamy tylko warstwę prezentacyjną, w kolejności odpowiadającej `Results.tsx`:
+
+```text
+┌ HeroStrip (score + verdict label + monogram)          [reuse]
+│
+├ Header: MentorMonogramBackdrop + MentorAvatar (typ rozmowy)
+│
+├ SEKCJA 1 — WERDYKT
+│   • VerdictBanner (score, akcent typu)
+│   • WeakestStrongestBadges (najsłabsza / najsilniejsza metryka)
+│   • card-brutal z cytatem: "{summary}"  (dropcap, Georgia italic, kolor akcentu)
+│
+├ SEKCJA 2 — KONTEKST
+│   SectionHeader "Kontekst" + card-brutal z stakes / goal / otherParty
+│   + pill-y: data, czas trwania, typ
+│
+├ SEKCJA 3 — OŚ CZASU (chess-style)
+│   SectionHeader "Kluczowe momenty"
+│   Zamiast poziomego scrolla → pionowa oś z markerami event-color,
+│   każdy klikalny → scrollToLine; hover pokazuje snippet.
+│   Powyżej mini-mapa jakości (bar per event z EVENT_COLOR).
+│
+├ SEKCJA 4 — LICZBY
+│   SectionHeader "Twoje metryki"
+│   Reuse MetricsGrid / MetricTile z Results (spójny wygląd),
+│   źródło: c.metrics (label/value/description/benchmark/good).
+│
+├ SEKCJA 5 — MOMENTY PRAWDY (jeśli są)
+│   card-brutal + Quote icon + coachNote + proAlternative (bez zmian danych,
+│   ale w stylu MentorFeedbackSections).
+│
+├ SEKCJA 6 — TRANSKRYPT
+│   card-brutal, sticky toggle "pokaż drugiego mówcę",
+│   linia "Ty" = lewy border akcent typu, "Inny" = muted.
+│
+├ SEKCJA 7 — SCORECARD (radar)
+│   Zachowujemy `ScorecardRadar`, ale ubieramy w card-brutal +
+│   SectionHeader "Porównanie" + legenda w font-mono.
+│
+├ Closing quote (jeśli `summary` długie) — jak w Results
+│
+└ BrutalCTA (reuse) → "Nowa rozmowa" / "Wróć do biblioteki" / "Panel"
 ```
 
-Ta sama klasa problemu co wcześniej z `.env` — Lovable operuje na jednym projekcie, kod chodzi na drugim.
+## Krok 3 — Reużyte komponenty (bez zmian API)
 
-## Konsekwencje w UI
+- `HeroStrip`, `MentorMonogramBackdrop`, `MentorAvatar`, `VerdictBanner`, `WeakestStrongestBadges`, `SectionHeader`, `MetricsGrid`, `MetricTile`, `BrutalCTA` z `src/components/results/`.
+- `card-brutal`, `bg-gradient-hero`, `text-gradient-primary` — istniejące klasy semantyczne.
 
-- `useConversationResult` SELECT po `error_message, diarization_data, user_speaker_label, context_*` → PostgREST 400 → `result = null` → `ConversationDetail` pokazuje „Rozmowa nie znaleziona" albo utyka na spinnerze.
-- `useConversationResults` (lista) też się wywala z tego samego powodu — zakładka Rozmowy pokazuje pustkę.
-- `process-conversation` / `analyze-conversation` przy zapisie do nieistniejących kolumn zwracają błąd → status rozmowy nigdy nie idzie do `complete`.
-- Realtime polling co 3s odpala się w kółko, ale zawsze dostaje ten sam błąd.
+## Krok 4 — Nowy komponent
 
-## Fix (3 kroki)
+`src/components/results/ConversationTimeline.tsx` — pionowa oś z klikalnymi kartami eventów + mini-mapa u góry. Wewnętrzny, zamknięty scope (żeby nie mieszać do chess-results, który jest per-zdanie z prosody).
 
-### 1. Zaaplikować migrację `20260702151755` na `hthjuoswarvsfssxqxxj`
-Uruchomić dokładnie SQL z tej migracji w SQL Editorze projektu `hthjuoswarvsfssxqxxj`. Zawiera:
-- `CREATE TABLE public.conversations` (18 kolumn: audio_url, audio_mime_type, conversation_type, status, duration_seconds, context_stakes/goal/other_party, diarization_data, transcript_full, transcript_user_only, user_speaker_label, error_message, timestamps)
-- `CREATE TABLE public.conversation_analyses` (overall_score, talk_time_ratio, type_specific_metrics, timeline_events, moments_of_truth, improvement_tips, feedback_summary, scorecard, xp_awarded)
-- `GRANT SELECT/INSERT/UPDATE/DELETE ... TO authenticated` + `GRANT ALL ... TO service_role` na obu tabelach
-- `ENABLE ROW LEVEL SECURITY` + polityki owner-only (`auth.uid() = user_id`)
-- Indeksy (`user_id, created_at DESC`, `status WHERE ... IN (...)`)
-- Trigger `set_updated_at`
-- `NOTIFY pgrst, 'reload schema'` na końcu, żeby PostgREST natychmiast zobaczył nowe kolumny
+## Krok 5 — Detale wizualne
 
-Jeżeli tabele istnieją w wersji szczątkowej — najpierw `DROP TABLE IF EXISTS public.conversation_analyses, public.conversations CASCADE;` i potem odpalić migrację czysto. (Baza jest pusta — nic nie tracimy.)
+- Akcent kolorystyczny: `hsl(var(--${conversationTypeMeta.accentVar}))` — jak w Results.
+- Kicker font-mono `text-[10px] uppercase tracking-[0.4em]`.
+- Nagłówki `font-display` (istniejący token), cytaty `Georgia serif italic`.
+- Ambient glow (dwa blur-3xl kółka jak w Results).
+- Zero hard-coded `text-white` / `bg-black` — wszystko przez tokeny.
 
-### 2. Zweryfikować, że 3 edge functions są zdeployowane na `hthjuoswarvsfssxqxxj`
-- `process-conversation`
-- `analyze-conversation`
-- `select-user-speaker`
+## Poza scope
 
-Sprawdzę przez `supabase functions list --project-ref hthjuoswarvsfssxqxxj`. Zdeployuję te, których brakuje.
+- Backend / dane / typy rozmowy — bez zmian.
+- `AnalyzingOverlay` — bez zmian (działa).
+- `Reviews.tsx`, `ConversationsLibrary.tsx` — nie ruszamy.
+- `ChessTimelineSection` per-zdanie z prosody — to jest dla nagrań solo, nie dokładamy do rozmów.
 
-### 3. Test end‑to‑end
-Realny upload krótkiego audio (≥30s) → sprawdzam każdy status w bazie (`pending → diarizing → awaiting_speaker_selection|analyzing → complete`) i logi 3 funkcji. Screenshot z ConversationDetail żeby potwierdzić że hero score, metryki, timeline i transkrypt renderują się z realnych danych.
+## Techniczne szczegóły
 
-## Sekcja techniczna
-
-- **Nie ruszam kodu frontendu ani hooków** — `useConversationResult` jest poprawny, wywala się bo baza ma zły schema.
-- **Nie ruszam `src/lib/supabase.ts`** — hardcode jest celowy z powodów opisanych w komentarzu w pliku.
-- **Zabezpieczenie na przyszłość:** dodam w `AUDIT_DB_CONSISTENCY.md` notatkę, że każda migracja w repo musi być ręcznie odpalona na `hthjuoswarvsfssxqxxj`, dopóki nie odetniemy Lovable Cloud. (Docelowo powinniśmy przełączyć Lovable na ten projekt, ale to osobna decyzja.)
-
-## Ryzyka
-
-- Jeżeli okaże się, że jakaś rozmowa już siedzi w szczątkowej tabeli, DROP CASCADE ją usunie. Sprawdzę `SELECT count(*)` przed dropem — jeżeli 0, drop bez pytania; jeżeli >0, zapytam Cię co robić.
-- Edge functions korzystają z `SUPABASE_SERVICE_ROLE_KEY` po stronie serwera; jeśli w Function Secrets tego projektu tego brakuje, dodam.
-
-## Kryterium sukcesu
-
-1. `GET /rest/v1/conversations?select=id,status,error_message,user_speaker_label,diarization_data` zwraca 200 (pusta tablica dla anon jest OK).
-2. Upload testowy w UI: progress bar dobija do 100%, backend rozpoznaje mówców (1 lub więcej), analiza kończy się, `ConversationDetail` pokazuje wynik ze scorem i transkryptem.
-3. Zero błędów `42703` w logach edge functions.
+- Plik main: `src/pages/ConversationDetail.tsx` — refactor sekcji renderującej (od `return` w AppShell).
+- Nowy: `src/components/results/ConversationTimeline.tsx`.
+- Edit: `src/data/conversationTypes.ts` — dodać pola persony.
+- Weryfikacja: `tsgo` + otwarcie `/conversations/:id` w Playwright, screenshot 402×637 (viewport użytkownika) + 1280×1800.
