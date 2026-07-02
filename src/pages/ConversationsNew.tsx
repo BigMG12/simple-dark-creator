@@ -294,25 +294,40 @@ export default function ConversationsNew() {
       if (signed?.signedUrl) setAudioSignedUrl(signed.signedUrl);
 
       // 2. Invoke process-conversation (Deepgram diarization). This can take
-      //    up to ~2 minutes depending on file length.
+      //    up to ~2 minutes depending on file length. Retry only on transient
+      //    network / 5xx errors — never on structured 4xx responses.
       setProcessingLabel("Rozdzielam mówców w rozmowie…");
-      const { data: result, error: fnErr } = await supabase.functions.invoke(
-        "process-conversation",
-        { body: { conversation_id: convo.id } },
+      const result = await retryWithBackoff(
+        async () => {
+          const { data, error: fnErr } = await supabase.functions.invoke(
+            "process-conversation",
+            { body: { conversation_id: convo.id } },
+          );
+          if (fnErr) {
+            const ctx = (fnErr as any).context;
+            let msg = fnErr.message || "Diarizacja nie powiodła się.";
+            let status: number | undefined;
+            if (ctx) {
+              try {
+                status = (ctx as Response).status;
+                const j = typeof ctx === "string" ? JSON.parse(ctx) : await (ctx as Response).json?.();
+                if (j?.error) msg = j.error;
+              } catch {}
+            }
+            const wrapped = new Error(msg) as Error & { status?: number };
+            wrapped.status = status;
+            throw wrapped;
+          }
+          return data;
+        },
+        {
+          attempts: 3,
+          baseMs: 1500,
+          maxMs: 6000,
+          shouldRetry: shouldRetryTransientOnly,
+          onAttempt: (n) => setProcessingLabel(`Ponawiam diarizację (próba ${n}/3)…`),
+        },
       );
-
-      if (fnErr) {
-        // Try to extract server-side error message.
-        const ctx = (fnErr as any).context;
-        let msg = fnErr.message || "Diarizacja nie powiodła się.";
-        if (ctx) {
-          try {
-            const j = typeof ctx === "string" ? JSON.parse(ctx) : await (ctx as Response).json?.();
-            if (j?.error) msg = j.error;
-          } catch {}
-        }
-        throw new Error(msg);
-      }
 
       // 3. Branch on result
       if (result?.status === "single_speaker_detected" || result?.status === "fell_back_to_solo") {
