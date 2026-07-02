@@ -27,6 +27,7 @@ import { CONVERSATION_TYPE_META, type ConversationType } from "@/data/conversati
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { retryWithBackoff, shouldRetryTransientOnly } from "@/lib/retry";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 type Source = "audio" | "video" | null;
@@ -115,6 +116,7 @@ export default function ConversationsNew() {
   const [uploading, setUploading] = useState(false);
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadAttempt, setUploadAttempt] = useState(0);
 
   const [convType, setConvType] = useState<ConversationType | null>(null);
   const [stakes, setStakes] = useState("");
@@ -179,26 +181,55 @@ export default function ConversationsNew() {
 
     setUploading(true);
     setProgress(1);
+    setUploadAttempt(1);
 
     try {
-      // Supabase JS v2 supports onProgress via fetch options in newer versions,
-      // but for reliability we drive a manual XHR through a signed upload URL.
-      const { data: signed, error: signErr } = await supabase.storage
-        .from("conversations")
-        .createSignedUploadUrl(path);
-      if (signErr || !signed) throw signErr ?? new Error("Nie udało się przygotować uploadu.");
+      // Retry the signed URL creation (3 attempts) — usually a quick DB roundtrip.
+      const signed = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase.storage
+            .from("conversations")
+            .createSignedUploadUrl(path);
+          if (error || !data) throw error ?? new Error("Nie udało się przygotować uploadu.");
+          return data;
+        },
+        { attempts: 3, baseMs: 400, maxMs: 3000 },
+      );
 
-      await uploadWithProgress(signed.signedUrl, f, (pct) => setProgress(pct));
+      // Retry the actual PUT upload (4 attempts) — reset progress on each try.
+      await retryWithBackoff(
+        () => {
+          setProgress(1);
+          return uploadWithProgress(signed.signedUrl, f, (pct) => setProgress(pct));
+        },
+        {
+          attempts: 4,
+          baseMs: 800,
+          maxMs: 8000,
+          onAttempt: (n) => setUploadAttempt(n),
+        },
+      );
 
       setUploadedPath(path);
       setProgress(100);
+      setUploadAttempt(0);
     } catch (err) {
-      console.error("[upload] failed:", err);
-      setFileError((err as Error).message ?? "Upload nie powiódł się.");
+      console.error("[upload] failed after retries:", err);
+      const raw = (err as Error)?.message ?? "";
+      setFileError(
+        raw && !raw.toLowerCase().includes("network") && !raw.toLowerCase().includes("fetch")
+          ? `Upload nie powiódł się: ${raw}`
+          : "Upload nie powiódł się po kilku próbach. Sprawdź połączenie i spróbuj ponownie.",
+      );
       setUploadedPath(null);
+      setUploadAttempt(0);
     } finally {
       setUploading(false);
     }
+  };
+
+  const retryUpload = () => {
+    if (file) handleFileSelected(file);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -218,6 +249,7 @@ export default function ConversationsNew() {
     setUploadedPath(null);
     setDurationSec(null);
     setFileError(null);
+    setUploadAttempt(0);
   };
 
   // ────────────────────────────────────────────────────────────────
@@ -262,25 +294,40 @@ export default function ConversationsNew() {
       if (signed?.signedUrl) setAudioSignedUrl(signed.signedUrl);
 
       // 2. Invoke process-conversation (Deepgram diarization). This can take
-      //    up to ~2 minutes depending on file length.
+      //    up to ~2 minutes depending on file length. Retry only on transient
+      //    network / 5xx errors — never on structured 4xx responses.
       setProcessingLabel("Rozdzielam mówców w rozmowie…");
-      const { data: result, error: fnErr } = await supabase.functions.invoke(
-        "process-conversation",
-        { body: { conversation_id: convo.id } },
+      const result = await retryWithBackoff(
+        async () => {
+          const { data, error: fnErr } = await supabase.functions.invoke(
+            "process-conversation",
+            { body: { conversation_id: convo.id } },
+          );
+          if (fnErr) {
+            const ctx = (fnErr as any).context;
+            let msg = fnErr.message || "Diarizacja nie powiodła się.";
+            let status: number | undefined;
+            if (ctx) {
+              try {
+                status = (ctx as Response).status;
+                const j = typeof ctx === "string" ? JSON.parse(ctx) : await (ctx as Response).json?.();
+                if (j?.error) msg = j.error;
+              } catch {}
+            }
+            const wrapped = new Error(msg) as Error & { status?: number };
+            wrapped.status = status;
+            throw wrapped;
+          }
+          return data;
+        },
+        {
+          attempts: 3,
+          baseMs: 1500,
+          maxMs: 6000,
+          shouldRetry: shouldRetryTransientOnly,
+          onAttempt: (n) => setProcessingLabel(`Ponawiam diarizację (próba ${n}/3)…`),
+        },
       );
-
-      if (fnErr) {
-        // Try to extract server-side error message.
-        const ctx = (fnErr as any).context;
-        let msg = fnErr.message || "Diarizacja nie powiodła się.";
-        if (ctx) {
-          try {
-            const j = typeof ctx === "string" ? JSON.parse(ctx) : await (ctx as Response).json?.();
-            if (j?.error) msg = j.error;
-          } catch {}
-        }
-        throw new Error(msg);
-      }
 
       // 3. Branch on result
       if (result?.status === "single_speaker_detected" || result?.status === "fell_back_to_solo") {
@@ -342,10 +389,26 @@ export default function ConversationsNew() {
     if (!conversationId || !selectedSpeaker) return;
     setSelecting(true);
     try {
-      const { error } = await supabase.functions.invoke("select-user-speaker", {
-        body: { conversation_id: conversationId, speaker_label: selectedSpeaker },
-      });
-      if (error) throw error;
+      await retryWithBackoff(
+        async () => {
+          const { error } = await supabase.functions.invoke("select-user-speaker", {
+            body: { conversation_id: conversationId, speaker_label: selectedSpeaker },
+          });
+          if (error) {
+            const ctx = (error as any).context;
+            const status = ctx?.status;
+            const wrapped = new Error(error.message) as Error & { status?: number };
+            wrapped.status = status;
+            throw wrapped;
+          }
+        },
+        {
+          attempts: 3,
+          baseMs: 600,
+          maxMs: 4000,
+          shouldRetry: shouldRetryTransientOnly,
+        },
+      );
       navigate(`/conversations/${conversationId}?analyzing=1`, { replace: true });
     } catch (err) {
       toast({
@@ -488,14 +551,32 @@ export default function ConversationsNew() {
                 <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
                   <div className="h-full bg-gradient-primary transition-all" style={{ width: `${progress}%` }} />
                 </div>
-                <p className="text-[10px] font-mono text-muted-foreground text-right">{progress}%</p>
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                  {uploading && uploadAttempt > 1 ? (
+                    <span className="text-primary">Ponawiam upload (próba {uploadAttempt}/4)…</span>
+                  ) : (
+                    <span />
+                  )}
+                  <span>{progress}%</span>
+                </div>
               </div>
             )}
 
             {fileError && (
-              <div className="rounded-md border border-destructive/50 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground flex items-start gap-2">
+              <div className="rounded-md border border-destructive/50 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive-foreground" />
-                <span className="font-medium">{fileError}</span>
+                <div className="flex-1">
+                  <p className="font-medium">{fileError}</p>
+                  {file && !uploading && (
+                    <button
+                      type="button"
+                      onClick={retryUpload}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest underline underline-offset-2 hover:text-foreground"
+                    >
+                      Spróbuj ponownie
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

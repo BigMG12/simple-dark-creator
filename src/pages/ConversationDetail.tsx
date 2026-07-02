@@ -211,7 +211,9 @@ export default function ConversationDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { data: result, isLoading } = useConversationResult(id);
+  const query = useConversationResult(id);
+  const { data: result, isLoading } = query;
+  const pollingFailed = (query.failureCount ?? 0) >= 5 && !result;
   const status = result?.status;
   const isProcessing =
     status === "pending" ||
@@ -222,11 +224,13 @@ export default function ConversationDetail() {
     params.get("analyzing") === "1" || (!!status && isProcessing),
   );
   const [showOther, setShowOther] = useState(false);
+  const [stuckTimeout, setStuckTimeout] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "complete" || status === "failed") {
       setAnalyzing(false);
+      setStuckTimeout(false);
       if (params.get("analyzing")) {
         params.delete("analyzing");
         setParams(params, { replace: true });
@@ -235,6 +239,18 @@ export default function ConversationDetail() {
       setAnalyzing(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // Timeout guard — flag if pending/diarizing/analyzing (but NOT
+  // awaiting_speaker_selection, which waits on the user) runs > 5 minutes.
+  useEffect(() => {
+    const stuckStatuses = ["pending", "diarizing", "analyzing"];
+    if (!status || !stuckStatuses.includes(status)) {
+      setStuckTimeout(false);
+      return;
+    }
+    const t = setTimeout(() => setStuckTimeout(true), 5 * 60 * 1000);
+    return () => clearTimeout(t);
   }, [status]);
 
   const c = useMemo(() => {
@@ -299,10 +315,29 @@ export default function ConversationDetail() {
       <AppShell>
         <div className="max-w-3xl mx-auto px-5 py-20 text-center">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="font-display text-xl mb-2">Rozmowa nie znaleziona</p>
-          <Button asChild variant="outline">
-            <Link to="/conversations">Powrót do listy</Link>
-          </Button>
+          {pollingFailed ? (
+            <>
+              <p className="font-display text-xl mb-2">Nie udało się pobrać rozmowy</p>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Sprawdź połączenie z internetem i spróbuj odświeżyć stronę.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" onClick={() => query.refetch()}>
+                  Spróbuj ponownie
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link to="/conversations">Powrót do listy</Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-xl mb-2">Rozmowa nie znaleziona</p>
+              <Button asChild variant="outline">
+                <Link to="/conversations">Powrót do listy</Link>
+              </Button>
+            </>
+          )}
         </div>
       </AppShell>
     );
@@ -323,6 +358,26 @@ export default function ConversationDetail() {
   return (
     <AppShell>
       {analyzing && <AnalyzingOverlay messages={TYPE_ANALYZE_MESSAGES[c.type]} onDone={onAnalyzeDone} />}
+
+      {stuckTimeout && isProcessing && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-lg w-[90%] rounded-md border border-amber-500/50 bg-amber-500/15 backdrop-blur-md px-4 py-3 shadow-elegant">
+          <p className="text-sm font-medium text-amber-100">
+            Analiza trwa dłużej niż zwykle
+          </p>
+          <p className="text-xs text-amber-100/80 mt-1">
+            Coś mogło się zaciąć. Odśwież stronę za chwilę — jeśli błąd się powtarza, przetwarzanie prawdopodobnie się nie powiedzie.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => query.refetch()}>
+              Odśwież status
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setStuckTimeout(false)}>
+              Ukryj
+            </Button>
+          </div>
+        </div>
+      )}
+
 
       <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[40rem] w-[40rem] rounded-full bg-primary/15 blur-3xl" />

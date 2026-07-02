@@ -227,6 +227,12 @@ const ACTIVE_STATUSES: ConversationStatus[] = [
 
 // ---- hooks -------------------------------------------------------------
 
+// Increasing polling cadence — 2s, 3s, 5s, 8s, then cap at 12s.
+function pollingInterval(fetchCount: number): number {
+  const schedule = [2000, 3000, 5000, 8000, 12000];
+  return schedule[Math.min(fetchCount, schedule.length - 1)];
+}
+
 export function useConversationResult(conversationId: string) {
   return useQuery<ConversationResult | null>({
     queryKey: qk.conversationResult(conversationId),
@@ -253,12 +259,20 @@ export function useConversationResult(conversationId: string) {
       return mapToResult(convo as ConversationRow, (analysis as AnalysisRow | null) ?? null)
     },
     enabled: !!conversationId,
-    // Poll while the conversation is still processing.
+    // Poll while the conversation is still processing — backoff cadence.
     refetchInterval: (query) => {
       const result = query.state.data as ConversationResult | null | undefined
       if (!result) return 3000
-      return ACTIVE_STATUSES.includes(result.status) ? 3000 : false
+      if (!ACTIVE_STATUSES.includes(result.status)) return false
+      // Reset cadence each time we get a successful data update; use error
+      // count so repeated failures also slow the loop down.
+      const errCount = query.state.fetchFailureCount ?? 0
+      const baseCount = Math.floor((query.state.dataUpdateCount ?? 0) / 3)
+      return pollingInterval(errCount + baseCount)
     },
+    // Retry individual query calls up to 5 times with exponential backoff.
+    retry: 5,
+    retryDelay: (attempt) => Math.min(30000, 1000 * Math.pow(2, attempt)),
     staleTime: 0,
   })
 }
