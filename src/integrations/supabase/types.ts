@@ -14,7 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversation_analyses: {
+        Row: {
+          conversation_id: string
+          conversation_type: string
+          created_at: string
+          feedback_summary: string | null
+          id: string
+          improvement_tips: Json | null
+          moments_of_truth: Json | null
+          overall_score: number
+          scorecard: Json | null
+          talk_time_ratio: number | null
+          timeline_events: Json | null
+          type_specific_metrics: Json | null
+          updated_at: string
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          conversation_id: string
+          conversation_type: string
+          created_at?: string
+          feedback_summary?: string | null
+          id?: string
+          improvement_tips?: Json | null
+          moments_of_truth?: Json | null
+          overall_score: number
+          scorecard?: Json | null
+          talk_time_ratio?: number | null
+          timeline_events?: Json | null
+          type_specific_metrics?: Json | null
+          updated_at?: string
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          conversation_id?: string
+          conversation_type?: string
+          created_at?: string
+          feedback_summary?: string | null
+          id?: string
+          improvement_tips?: Json | null
+          moments_of_truth?: Json | null
+          overall_score?: number
+          scorecard?: Json | null
+          talk_time_ratio?: number | null
+          timeline_events?: Json | null
+          type_specific_metrics?: Json | null
+          updated_at?: string
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analyses_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          audio_mime_type: string | null
+          audio_url: string
+          context_goal: string | null
+          context_other_party: string | null
+          context_stakes: string | null
+          conversation_type: string
+          created_at: string
+          diarization_data: Json | null
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          status: string
+          transcript_full: string | null
+          transcript_user_only: string | null
+          updated_at: string
+          user_id: string
+          user_speaker_label: string | null
+        }
+        Insert: {
+          audio_mime_type?: string | null
+          audio_url: string
+          context_goal?: string | null
+          context_other_party?: string | null
+          context_stakes?: string | null
+          conversation_type: string
+          created_at?: string
+          diarization_data?: Json | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          transcript_full?: string | null
+          transcript_user_only?: string | null
+          updated_at?: string
+          user_id: string
+          user_speaker_label?: string | null
+        }
+        Update: {
+          audio_mime_type?: string | null
+          audio_url?: string
+          context_goal?: string | null
+          context_other_party?: string | null
+          context_stakes?: string | null
+          conversation_type?: string
+          created_at?: string
+          diarization_data?: Json | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          status?: string
+          transcript_full?: string | null
+          transcript_user_only?: string | null
+          updated_at?: string
+          user_id?: string
+          user_speaker_label?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
