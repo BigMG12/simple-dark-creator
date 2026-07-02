@@ -493,9 +493,9 @@ export default function ConversationsNew() {
             )}
 
             {fileError && (
-              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>{fileError}</span>
+              <div className="rounded-md border border-destructive/50 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive-foreground" />
+                <span className="font-medium">{fileError}</span>
               </div>
             )}
 
