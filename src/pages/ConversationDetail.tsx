@@ -359,6 +359,26 @@ export default function ConversationDetail() {
     <AppShell>
       {analyzing && <AnalyzingOverlay messages={TYPE_ANALYZE_MESSAGES[c.type]} onDone={onAnalyzeDone} />}
 
+      {stuckTimeout && isProcessing && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] max-w-lg w-[90%] rounded-md border border-amber-500/50 bg-amber-500/15 backdrop-blur-md px-4 py-3 shadow-elegant">
+          <p className="text-sm font-medium text-amber-100">
+            Analiza trwa dłużej niż zwykle
+          </p>
+          <p className="text-xs text-amber-100/80 mt-1">
+            Coś mogło się zaciąć. Odśwież stronę za chwilę — jeśli błąd się powtarza, przetwarzanie prawdopodobnie się nie powiedzie.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => query.refetch()}>
+              Odśwież status
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setStuckTimeout(false)}>
+              Ukryj
+            </Button>
+          </div>
+        </div>
+      )}
+
+
       <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[40rem] w-[40rem] rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
