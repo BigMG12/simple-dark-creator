@@ -551,14 +551,32 @@ export default function ConversationsNew() {
                 <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
                   <div className="h-full bg-gradient-primary transition-all" style={{ width: `${progress}%` }} />
                 </div>
-                <p className="text-[10px] font-mono text-muted-foreground text-right">{progress}%</p>
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                  {uploading && uploadAttempt > 1 ? (
+                    <span className="text-primary">Ponawiam upload (próba {uploadAttempt}/4)…</span>
+                  ) : (
+                    <span />
+                  )}
+                  <span>{progress}%</span>
+                </div>
               </div>
             )}
 
             {fileError && (
-              <div className="rounded-md border border-destructive/50 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground flex items-start gap-2">
+              <div className="rounded-md border border-destructive/50 bg-destructive/15 px-4 py-3 text-sm text-destructive-foreground flex items-start gap-3">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-destructive-foreground" />
-                <span className="font-medium">{fileError}</span>
+                <div className="flex-1">
+                  <p className="font-medium">{fileError}</p>
+                  {file && !uploading && (
+                    <button
+                      type="button"
+                      onClick={retryUpload}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest underline underline-offset-2 hover:text-foreground"
+                    >
+                      Spróbuj ponownie
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
