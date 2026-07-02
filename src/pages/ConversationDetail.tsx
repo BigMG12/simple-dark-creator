@@ -315,10 +315,29 @@ export default function ConversationDetail() {
       <AppShell>
         <div className="max-w-3xl mx-auto px-5 py-20 text-center">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="font-display text-xl mb-2">Rozmowa nie znaleziona</p>
-          <Button asChild variant="outline">
-            <Link to="/conversations">Powrót do listy</Link>
-          </Button>
+          {pollingFailed ? (
+            <>
+              <p className="font-display text-xl mb-2">Nie udało się pobrać rozmowy</p>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                Sprawdź połączenie z internetem i spróbuj odświeżyć stronę.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" onClick={() => query.refetch()}>
+                  Spróbuj ponownie
+                </Button>
+                <Button asChild variant="ghost">
+                  <Link to="/conversations">Powrót do listy</Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-xl mb-2">Rozmowa nie znaleziona</p>
+              <Button asChild variant="outline">
+                <Link to="/conversations">Powrót do listy</Link>
+              </Button>
+            </>
+          )}
         </div>
       </AppShell>
     );
