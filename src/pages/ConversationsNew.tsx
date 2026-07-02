@@ -181,26 +181,55 @@ export default function ConversationsNew() {
 
     setUploading(true);
     setProgress(1);
+    setUploadAttempt(1);
 
     try {
-      // Supabase JS v2 supports onProgress via fetch options in newer versions,
-      // but for reliability we drive a manual XHR through a signed upload URL.
-      const { data: signed, error: signErr } = await supabase.storage
-        .from("conversations")
-        .createSignedUploadUrl(path);
-      if (signErr || !signed) throw signErr ?? new Error("Nie udało się przygotować uploadu.");
+      // Retry the signed URL creation (3 attempts) — usually a quick DB roundtrip.
+      const signed = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase.storage
+            .from("conversations")
+            .createSignedUploadUrl(path);
+          if (error || !data) throw error ?? new Error("Nie udało się przygotować uploadu.");
+          return data;
+        },
+        { attempts: 3, baseMs: 400, maxMs: 3000 },
+      );
 
-      await uploadWithProgress(signed.signedUrl, f, (pct) => setProgress(pct));
+      // Retry the actual PUT upload (4 attempts) — reset progress on each try.
+      await retryWithBackoff(
+        () => {
+          setProgress(1);
+          return uploadWithProgress(signed.signedUrl, f, (pct) => setProgress(pct));
+        },
+        {
+          attempts: 4,
+          baseMs: 800,
+          maxMs: 8000,
+          onAttempt: (n) => setUploadAttempt(n),
+        },
+      );
 
       setUploadedPath(path);
       setProgress(100);
+      setUploadAttempt(0);
     } catch (err) {
-      console.error("[upload] failed:", err);
-      setFileError((err as Error).message ?? "Upload nie powiódł się.");
+      console.error("[upload] failed after retries:", err);
+      const raw = (err as Error)?.message ?? "";
+      setFileError(
+        raw && !raw.toLowerCase().includes("network") && !raw.toLowerCase().includes("fetch")
+          ? `Upload nie powiódł się: ${raw}`
+          : "Upload nie powiódł się po kilku próbach. Sprawdź połączenie i spróbuj ponownie.",
+      );
       setUploadedPath(null);
+      setUploadAttempt(0);
     } finally {
       setUploading(false);
     }
+  };
+
+  const retryUpload = () => {
+    if (file) handleFileSelected(file);
   };
 
   const onDrop = (e: React.DragEvent) => {
