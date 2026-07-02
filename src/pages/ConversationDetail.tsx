@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
-  ArrowRight,
   Calendar,
   Clock,
   MessageSquare,
@@ -16,7 +15,17 @@ import { AppShell } from "@/components/nav/AppShell";
 import { Button } from "@/components/ui/button";
 import { useConversationResult } from "@/hooks/queries";
 import { CONVERSATION_TYPE_META, type ConversationType } from "@/data/conversationTypes";
+import { CATEGORY_BY_ID } from "@/data/categories";
 import { cn } from "@/lib/utils";
+import { HeroStrip } from "@/components/results/HeroStrip";
+import { MentorMonogramBackdrop } from "@/components/results/MentorMonogramBackdrop";
+import { MentorAvatar } from "@/components/results/MentorAvatar";
+import { VerdictBanner } from "@/components/results/VerdictBanner";
+import { WeakestStrongestBadges } from "@/components/results/WeakestStrongestBadges";
+import { SectionHeader } from "@/components/results/SectionHeader";
+import { MetricTile } from "@/components/results/MetricTile";
+import { BrutalCTA } from "@/components/results/BrutalCTA";
+import { ConversationTimeline } from "@/components/results/ConversationTimeline";
 
 const TYPE_ANALYZE_MESSAGES: Record<ConversationType, string[]> = {
   sales: [
@@ -65,25 +74,16 @@ const TYPE_ANALYZE_MESSAGES: Record<ConversationType, string[]> = {
 
 function fmtDur(s: number) {
   const m = Math.floor(s / 60);
-  const r = s % 60;
+  const r = Math.floor(s % 60);
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
-function fmtTimestamp(s: number) {
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
+function verdictFromScore(score: number): "Surowy" | "Solidny" | "Mocny" | "Mistrzowski" {
+  if (score >= 90) return "Mistrzowski";
+  if (score >= 75) return "Mocny";
+  if (score >= 55) return "Solidny";
+  return "Surowy";
 }
-
-const EVENT_COLOR: Record<string, string> = {
-  objection: "hsl(var(--destructive))",
-  close: "hsl(var(--primary))",
-  interruption: "hsl(var(--accent))",
-  question: "hsl(var(--category-authority))",
-  anchor: "hsl(var(--category-sales))",
-  concession: "hsl(var(--category-influence))",
-  moment: "hsl(var(--success))",
-};
 
 function ScorecardRadar({
   data,
@@ -177,8 +177,39 @@ function AnalyzingOverlay({ messages, onDone }: { messages: string[]; onDone: ()
   );
 }
 
+function Legend({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
+  return (
+    <span className="flex items-center gap-1.5 text-muted-foreground">
+      <span
+        className="h-2.5 w-4 rounded-sm"
+        style={{
+          background: dashed ? "transparent" : color,
+          border: dashed ? `1.5px dashed ${color}` : undefined,
+        }}
+      />
+      {label}
+    </span>
+  );
+}
+
+function highlightWeakPhrases(text: string, phrases: string[]) {
+  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const re = new RegExp(`(${escaped.join("|")})`, "gi");
+  const parts = text.split(re);
+  return parts.map((p, i) =>
+    re.test(p) && phrases.some((ph) => ph.toLowerCase() === p.toLowerCase()) ? (
+      <span key={i} className="text-destructive underline decoration-dotted decoration-destructive/60 underline-offset-2">
+        {p}
+      </span>
+    ) : (
+      <span key={i}>{p}</span>
+    ),
+  );
+}
+
 export default function ConversationDetail() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { data: result, isLoading } = useConversationResult(id);
   const status = result?.status;
@@ -193,7 +224,6 @@ export default function ConversationDetail() {
   const [showOther, setShowOther] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
-  // Auto-dismiss the overlay only once the backend actually finished.
   useEffect(() => {
     if (status === "complete" || status === "failed") {
       setAnalyzing(false);
@@ -207,15 +237,13 @@ export default function ConversationDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  // Mapowanie danych z backendu na format UI
   const c = useMemo(() => {
     if (!result) return null;
-
     const typeMeta = CONVERSATION_TYPE_META[result.conversation_type];
-
     return {
       id: result.id,
       type: result.conversation_type,
+      typeMeta,
       typeLabel: typeMeta?.label || result.conversation_type,
       date: result.created_at,
       durationSec: result.duration_seconds,
@@ -225,27 +253,29 @@ export default function ConversationDetail() {
         otherParty: result.context_other_party,
       },
       overallScore: result.overall_score,
-      summary: result.summary || '',
+      summary: result.summary || "",
       metrics: result.metrics || [],
-      timeline: result.key_events?.map(e => ({
-        timestamp: e.timestamp,
-        type: e.type,
-        label: e.label,
-        snippet: e.description || '',
-      })) || [],
-      moments: [], // Backend nie ma jeszcze moments of truth
+      timeline:
+        result.key_events?.map((e) => ({
+          timestamp: e.timestamp,
+          type: e.type,
+          label: e.label,
+          snippet: e.description || "",
+        })) || [],
+      moments: [] as Array<{
+        quote: string;
+        timestamp: number;
+        coachNote: string;
+        proAlternative: string;
+      }>,
       transcript: result.transcript || [],
       scorecard: result.radar_data || [],
-      recommendedDrills: [], // Backend nie ma jeszcze recommended drills
       status: result.status,
       errorMessage: result.error_message,
     };
   }, [result]);
 
-  const onAnalyzeDone = () => {
-    // No-op: the effect above closes the overlay once status flips.
-  };
-
+  const onAnalyzeDone = () => {};
 
   const scrollToLine = (start: number) => {
     const el = transcriptRef.current?.querySelector<HTMLElement>(`[data-start="${start}"]`);
@@ -278,227 +308,310 @@ export default function ConversationDetail() {
     );
   }
 
+  const categoryId = c.typeMeta.categoryId;
+  const cat = CATEGORY_BY_ID[categoryId];
+  const accentColor = `hsl(var(--${cat.accentVar}))`;
+  const monogram = c.typeMeta.monogram;
+  const mentorName = c.typeMeta.mentorName;
+  const verdictLabel = verdictFromScore(c.overallScore || 0);
+  const hasVerdictQuote = c.summary.trim().length > 20;
+
+  // Weakest / strongest metric
+  const badMetric = c.metrics.find((m) => m.good === false);
+  const goodMetric = c.metrics.find((m) => m.good === true);
+
   return (
     <AppShell>
       {analyzing && <AnalyzingOverlay messages={TYPE_ANALYZE_MESSAGES[c.type]} onDone={onAnalyzeDone} />}
 
-      <div className="max-w-5xl mx-auto px-5 lg:px-8 py-8 lg:py-12 space-y-8">
-        <div className="flex items-center justify-between">
-          <Link to="/conversations" className="inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3 w-3" /> Wszystkie rozmowy
-          </Link>
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest bg-surface border border-border text-muted-foreground">
-            {c.typeLabel}
-          </span>
-        </div>
+      <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
+        <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[40rem] w-[40rem] rounded-full bg-primary/15 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
 
-        {/* 1. Hero score */}
-        <section className="card-premium p-7 lg:p-10 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground mb-3">Ogólna wydajność</p>
-          <div className="font-mono text-7xl md:text-8xl text-gradient-primary mb-3">{c.overallScore}</div>
-          <p className="text-sm text-foreground/80 max-w-2xl mx-auto leading-relaxed">{c.summary}</p>
-        </section>
+        <HeroStrip
+          score={c.overallScore || 0}
+          verdictLabel={verdictLabel}
+          verdictQuote={hasVerdictQuote ? c.summary : null}
+          mentorMonogram={monogram}
+          mentorName={mentorName}
+          mentorCategory={categoryId}
+          accentColor={accentColor}
+        />
 
-        {/* 2. Context recap */}
-        <section className="card-premium p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2 text-sm">
-            {c.context.stakes && <p><span className="text-muted-foreground">Stawka:</span> {c.context.stakes}</p>}
-            {c.context.goal && <p><span className="text-muted-foreground">Cel:</span> {c.context.goal}</p>}
-            {c.context.otherParty && <p><span className="text-muted-foreground">Z:</span> {c.context.otherParty}</p>}
-          </div>
-          <div className="flex md:justify-end items-start gap-4 text-xs font-mono text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {new Date(c.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-            <span className="inline-flex items-center gap-1.5"><Clock className="h-3 w-3" /> {fmtDur(c.durationSec)}</span>
-          </div>
-        </section>
-
-        {/* 3. Metrics */}
-        <section className="space-y-4">
-          <h2 className="font-display text-2xl">Szczegóły wydajności</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {c.metrics.map((m) => (
-              <div key={m.key} className="card-premium p-4">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">{m.label}</p>
-                <p className={cn("font-mono text-2xl mb-1", m.good === false ? "text-destructive" : m.good === true ? "text-success" : "text-foreground")}>
-                  {m.value}
-                </p>
-                <p className="text-xs text-foreground/70">{m.description}</p>
-                {m.benchmark && <p className="text-[10px] text-muted-foreground font-mono mt-2">{m.benchmark}</p>}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 4. Timeline */}
-        <section className="card-premium p-5">
-          <h2 className="font-display text-xl mb-4">Oś czasu</h2>
-          <div className="overflow-x-auto -mx-2 px-2">
-            <div className="flex gap-3 min-w-max pb-2">
-              {c.timeline.map((e, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => scrollToLine(e.timestamp)}
-                  className="text-left min-w-[200px] max-w-[240px] rounded-lg border border-border bg-surface p-3 hover:border-primary/50 transition-colors tap-press"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="h-2 w-2 rounded-full" style={{ background: EVENT_COLOR[e.type] }} />
-                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{fmtTimestamp(e.timestamp)}</span>
-                    <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: EVENT_COLOR[e.type] }}>{e.type}</span>
-                  </div>
-                  <p className="text-sm font-medium mb-1">{e.label}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">"{e.snippet}"</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 5. Moments of Truth */}
-        <section className="space-y-4">
-          <h2 className="font-display text-2xl flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" /> Momenty prawdy
-          </h2>
-          {c.moments.map((m, i) => (
-            <div
-              key={i}
-              className="rounded-xl p-5 bg-surface space-y-3"
-              style={{ boxShadow: "0 0 0 1px hsl(var(--accent) / 0.4), 0 10px 40px -10px hsl(var(--accent) / 0.2)" }}
+        <div className="relative z-10 max-w-5xl mx-auto px-5 lg:px-8 py-8 lg:py-12 space-y-12">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/conversations"
+              className="inline-flex items-center gap-1 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground"
             >
-              <div className="flex items-start gap-3">
-                <Quote className="h-5 w-5 text-accent shrink-0 mt-1" />
-                <div className="flex-1">
-                  <p className="text-sm italic text-foreground/90 leading-relaxed mb-3">"{m.quote}"</p>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Notatka coacha · {fmtTimestamp(m.timestamp)}</p>
-                  <p className="text-sm mt-1">{m.coachNote}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-accent mt-3">Jak poradziłby sobie profesjonalista</p>
-                  <p className="text-sm italic text-accent/90 mt-1">"{m.proAlternative}"</p>
+              <ArrowLeft className="h-3 w-3" /> Wszystkie rozmowy
+            </Link>
+            <span
+              className="px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest bg-surface border border-border"
+              style={{ color: accentColor }}
+            >
+              {c.typeLabel}
+            </span>
+          </div>
+
+          {/* Header: mentor backdrop + avatar */}
+          <header className="relative text-center py-8">
+            <MentorMonogramBackdrop monogram={monogram} accentColor={accentColor} />
+            <div className="relative space-y-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+                Twój raport · Rozmowa
+              </div>
+              <div className="flex justify-center">
+                <MentorAvatar monogram={monogram} name={mentorName} category={categoryId} size="lg" />
+              </div>
+            </div>
+          </header>
+
+          {/* SEKCJA 1 — WERDYKT */}
+          <section id="section-1" className="space-y-6">
+            <VerdictBanner label={verdictLabel} score={c.overallScore || 0} accentColor={accentColor} />
+
+            {badMetric && goodMetric && (
+              <WeakestStrongestBadges weakest={badMetric.key} strongest={goodMetric.key} />
+            )}
+
+            {hasVerdictQuote && (
+              <div className="card-brutal p-7 md:p-10 relative" style={{ borderLeftColor: accentColor }}>
+                <SectionHeader
+                  number={1}
+                  kicker="Werdykt"
+                  title={c.typeMeta.verdictKicker}
+                  accentColor={accentColor}
+                />
+                <p
+                  className="mentor-dropcap text-xl md:text-2xl leading-relaxed italic"
+                  style={{ fontFamily: "Georgia, serif", color: accentColor }}
+                >
+                  "{c.summary}"
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* SEKCJA 2 — KONTEKST */}
+          {(c.context.stakes || c.context.goal || c.context.otherParty) && (
+            <section id="section-2" className="space-y-5">
+              <SectionHeader number={2} kicker="Kontekst" title="Sytuacja tej rozmowy" accentColor={accentColor} />
+              <div className="card-brutal p-6 md:p-7" style={{ borderLeftColor: accentColor }}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {c.context.stakes && (
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1.5">
+                        Stawka
+                      </div>
+                      <p className="text-sm text-foreground/90">{c.context.stakes}</p>
+                    </div>
+                  )}
+                  {c.context.goal && (
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1.5">
+                        Cel
+                      </div>
+                      <p className="text-sm text-foreground/90">{c.context.goal}</p>
+                    </div>
+                  )}
+                  {c.context.otherParty && (
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1.5">
+                        Rozmówca
+                      </div>
+                      <p className="text-sm text-foreground/90">{c.context.otherParty}</p>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-5 pt-4 border-t border-border/60 flex flex-wrap gap-4 text-xs font-mono text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" />{" "}
+                    {new Date(c.date).toLocaleDateString("pl-PL", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="h-3 w-3" /> {fmtDur(c.durationSec)}
+                  </span>
                 </div>
               </div>
-            </div>
-          ))}
-        </section>
+            </section>
+          )}
 
-        {/* 6. Transcript */}
-        <section className="card-premium p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-xl">Twoja strona transkrypcji</h2>
-            <Button variant="ghost" size="sm" onClick={() => setShowOther((s) => !s)}>
-              {showOther ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showOther ? "Ukryj drugiego mówcę" : "Pokaż drugiego mówcę"}
-            </Button>
-          </div>
-          <div ref={transcriptRef} className="space-y-2">
-            {c.transcript.map((line, i) => {
-              const isYou = line.speaker === "you";
-              if (!isYou && !showOther) {
-                return (
-                  <div key={i} data-start={line.start} className="text-xs font-mono text-muted-foreground/40 italic px-3 py-1.5">
-                    [drugi mówca — ukryty]
-                  </div>
-                );
-              }
-              return (
+          {/* SEKCJA 3 — OŚ CZASU */}
+          {c.timeline.length > 0 && (
+            <section id="section-3" className="space-y-5">
+              <SectionHeader
+                number={3}
+                kicker="Chess Timeline"
+                title="Kluczowe momenty rozmowy"
+                accentColor={accentColor}
+              />
+              <ConversationTimeline
+                events={c.timeline}
+                durationSec={c.durationSec}
+                accentColor={accentColor}
+                onJump={scrollToLine}
+              />
+            </section>
+          )}
+
+          {/* SEKCJA 4 — LICZBY */}
+          {c.metrics.length > 0 && (
+            <section id="section-4" className="space-y-5">
+              <SectionHeader number={4} kicker="Liczby" title="Twoje metryki tej rozmowy" accentColor={accentColor} />
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {c.metrics.map((m) => (
+                  <MetricTile
+                    key={m.key}
+                    label={m.label}
+                    value={String(m.value)}
+                    goodDirection="up"
+                    hint={m.benchmark || m.description}
+                    alert={m.good === false}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SEKCJA 5 — MOMENTY PRAWDY */}
+          {c.moments.length > 0 && (
+            <section id="section-5" className="space-y-5">
+              <SectionHeader
+                number={5}
+                kicker="Momenty prawdy"
+                title="Punkty zwrotne rozmowy"
+                accentColor={accentColor}
+              />
+              {c.moments.map((m, i) => (
                 <div
                   key={i}
-                  data-start={line.start}
-                  className={cn(
-                    "rounded-lg px-3 py-2 transition-all",
-                    isYou ? "bg-primary/10 border-l-2 border-primary" : "bg-muted/30 border-l-2 border-muted",
-                  )}
+                  className="card-brutal p-6 md:p-7 space-y-3"
+                  style={{ borderLeftColor: accentColor }}
                 >
-                  <div className="flex items-baseline gap-3 mb-1">
-                    <span className={cn("font-mono text-[10px] uppercase tracking-widest", isYou ? "text-primary" : "text-muted-foreground")}>
-                      {isYou ? "Ty" : "Inny"}
-                    </span>
-                    <span className="font-mono text-[10px] text-muted-foreground">{fmtTimestamp(line.start)}</span>
+                  <div className="flex items-start gap-3">
+                    <Quote className="h-5 w-5 shrink-0 mt-1" style={{ color: accentColor }} />
+                    <div className="flex-1">
+                      <p className="text-sm italic text-foreground/90 leading-relaxed mb-3">"{m.quote}"</p>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                        Notatka coacha · {fmtDur(m.timestamp)}
+                      </p>
+                      <p className="text-sm mt-1">{m.coachNote}</p>
+                      <p
+                        className="font-mono text-[10px] uppercase tracking-[0.3em] mt-3"
+                        style={{ color: accentColor }}
+                      >
+                        Jak zrobiłby to profesjonalista
+                      </p>
+                      <p className="text-sm italic mt-1" style={{ color: accentColor }}>
+                        "{m.proAlternative}"
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-foreground/90">
-                    {line.weakPhrases?.length
-                      ? highlightWeakPhrases(line.text, line.weakPhrases)
-                      : line.text}
-                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              ))}
+            </section>
+          )}
 
-        {/* 7. Scorecard */}
-        <section className="card-premium p-6">
-          <h2 className="font-display text-xl mb-4">Porównanie wyników</h2>
-          <ScorecardRadar data={c.scorecard} />
-          <div className="flex items-center justify-center gap-5 mt-4 text-xs font-mono">
-            <Legend color="hsl(var(--primary))" label="Ty" />
-            <Legend color="hsl(var(--accent))" label="Najlepsi" dashed />
-            <Legend color="hsl(var(--muted-foreground))" label="Średnia" dashed />
-          </div>
-        </section>
-
-        {/* 8. Drills */}
-        <section className="space-y-4">
-          <h2 className="font-display text-2xl">Polecane ćwiczenia</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {c.recommendedDrills.map((d) => (
-              <div key={d.id} className="card-premium p-5 flex flex-col">
-                <p className="font-display text-base mb-2">{d.title}</p>
-                <p className="text-xs text-muted-foreground flex-1 mb-3">{d.why}</p>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-success">+{d.xp} XP</span>
-                  <Button asChild variant="fire" size="sm">
-                    <Link to={`/drills/${d.id}`}>Rozpocznij</Link>
+          {/* SEKCJA 6 — TRANSKRYPT */}
+          {c.transcript.length > 0 && (
+            <section id="section-6" className="space-y-5">
+              <SectionHeader number={6} kicker="Transkrypt" title="Twoja strona rozmowy" accentColor={accentColor} />
+              <div className="card-brutal p-6" style={{ borderLeftColor: accentColor }}>
+                <div className="flex items-center justify-end mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => setShowOther((s) => !s)}>
+                    {showOther ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showOther ? "Ukryj drugiego mówcę" : "Pokaż drugiego mówcę"}
                   </Button>
                 </div>
+                <div ref={transcriptRef} className="space-y-2">
+                  {c.transcript.map((line, i) => {
+                    const isYou = line.speaker === "you";
+                    if (!isYou && !showOther) {
+                      return (
+                        <div
+                          key={i}
+                          data-start={line.start}
+                          className="text-xs font-mono text-muted-foreground/40 italic px-3 py-1.5"
+                        >
+                          [drugi mówca — ukryty]
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={i}
+                        data-start={line.start}
+                        className={cn(
+                          "rounded-lg px-3 py-2 transition-all border-l-2",
+                          isYou ? "bg-primary/10" : "bg-muted/30 border-muted",
+                        )}
+                        style={isYou ? { borderLeftColor: accentColor } : undefined}
+                      >
+                        <div className="flex items-baseline gap-3 mb-1">
+                          <span
+                            className="font-mono text-[10px] uppercase tracking-widest"
+                            style={{ color: isYou ? accentColor : "hsl(var(--muted-foreground))" }}
+                          >
+                            {isYou ? "Ty" : "Inny"}
+                          </span>
+                          <span className="font-mono text-[10px] text-muted-foreground">
+                            {fmtDur(line.start)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground/90">
+                          {line.weakPhrases?.length
+                            ? highlightWeakPhrases(line.text, line.weakPhrases)
+                            : line.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
+          )}
 
-        {/* 9. Footer actions */}
-        <section className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-          <Button asChild variant="fire">
-            <Link to="/conversations/new">
-              <MessageSquare className="h-4 w-4" /> Analizuj kolejną rozmowę
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4" /> Powrót do panelu
-            </Link>
-          </Button>
-        </section>
+          {/* SEKCJA 7 — SCORECARD */}
+          {c.scorecard.length > 0 && (
+            <section id="section-7" className="space-y-5">
+              <SectionHeader
+                number={7}
+                kicker="Porównanie"
+                title="Ty vs najlepsi vs średnia"
+                accentColor={accentColor}
+              />
+              <div className="card-brutal p-6" style={{ borderLeftColor: accentColor }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="h-4 w-4" style={{ color: accentColor }} />
+                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                    Radar performansu
+                  </span>
+                </div>
+                <ScorecardRadar data={c.scorecard} />
+                <div className="flex items-center justify-center gap-5 mt-4 text-xs font-mono">
+                  <Legend color="hsl(var(--primary))" label="Ty" />
+                  <Legend color="hsl(var(--accent))" label="Najlepsi" dashed />
+                  <Legend color="hsl(var(--muted-foreground))" label="Średnia" dashed />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* CTA */}
+          <BrutalCTA
+            accentColor={accentColor}
+            mentorName={mentorName}
+            onRetry={() => navigate("/conversations/new")}
+            onDrill={() => navigate("/conversations")}
+            onHome={() => navigate("/dashboard")}
+          />
+        </div>
       </div>
     </AppShell>
-  );
-}
-
-function Legend({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
-  return (
-    <span className="flex items-center gap-1.5 text-muted-foreground">
-      <span
-        className="h-2.5 w-4 rounded-sm"
-        style={{
-          background: dashed ? "transparent" : color,
-          border: dashed ? `1.5px dashed ${color}` : undefined,
-        }}
-      />
-      {label}
-    </span>
-  );
-}
-
-function highlightWeakPhrases(text: string, phrases: string[]) {
-  // Build a regex that matches any of the weak phrases (case-insensitive)
-  const escaped = phrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const re = new RegExp(`(${escaped.join("|")})`, "gi");
-  const parts = text.split(re);
-  return parts.map((p, i) =>
-    re.test(p) && phrases.some((ph) => ph.toLowerCase() === p.toLowerCase()) ? (
-      <span key={i} className="text-destructive underline decoration-dotted decoration-destructive/60 underline-offset-2">
-        {p}
-      </span>
-    ) : (
-      <span key={i}>{p}</span>
-    ),
   );
 }
