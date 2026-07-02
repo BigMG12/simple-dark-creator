@@ -27,6 +27,7 @@ import { CONVERSATION_TYPE_META, type ConversationType } from "@/data/conversati
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { retryWithBackoff, shouldRetryTransientOnly } from "@/lib/retry";
 
 type Step = 1 | 2 | 3 | 4 | 5;
 type Source = "audio" | "video" | null;
