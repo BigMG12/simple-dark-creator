@@ -116,6 +116,7 @@ export default function ConversationsNew() {
   const [uploading, setUploading] = useState(false);
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadAttempt, setUploadAttempt] = useState(0);
 
   const [convType, setConvType] = useState<ConversationType | null>(null);
   const [stakes, setStakes] = useState("");
