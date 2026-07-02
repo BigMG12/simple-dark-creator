@@ -211,7 +211,9 @@ export default function ConversationDetail() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { data: result, isLoading } = useConversationResult(id);
+  const query = useConversationResult(id);
+  const { data: result, isLoading } = query;
+  const pollingFailed = (query.failureCount ?? 0) >= 5 && !result;
   const status = result?.status;
   const isProcessing =
     status === "pending" ||
@@ -222,11 +224,13 @@ export default function ConversationDetail() {
     params.get("analyzing") === "1" || (!!status && isProcessing),
   );
   const [showOther, setShowOther] = useState(false);
+  const [stuckTimeout, setStuckTimeout] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "complete" || status === "failed") {
       setAnalyzing(false);
+      setStuckTimeout(false);
       if (params.get("analyzing")) {
         params.delete("analyzing");
         setParams(params, { replace: true });
@@ -235,6 +239,18 @@ export default function ConversationDetail() {
       setAnalyzing(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // Timeout guard — flag if pending/diarizing/analyzing (but NOT
+  // awaiting_speaker_selection, which waits on the user) runs > 5 minutes.
+  useEffect(() => {
+    const stuckStatuses = ["pending", "diarizing", "analyzing"];
+    if (!status || !stuckStatuses.includes(status)) {
+      setStuckTimeout(false);
+      return;
+    }
+    const t = setTimeout(() => setStuckTimeout(true), 5 * 60 * 1000);
+    return () => clearTimeout(t);
   }, [status]);
 
   const c = useMemo(() => {
