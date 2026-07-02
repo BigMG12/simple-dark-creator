@@ -389,10 +389,26 @@ export default function ConversationsNew() {
     if (!conversationId || !selectedSpeaker) return;
     setSelecting(true);
     try {
-      const { error } = await supabase.functions.invoke("select-user-speaker", {
-        body: { conversation_id: conversationId, speaker_label: selectedSpeaker },
-      });
-      if (error) throw error;
+      await retryWithBackoff(
+        async () => {
+          const { error } = await supabase.functions.invoke("select-user-speaker", {
+            body: { conversation_id: conversationId, speaker_label: selectedSpeaker },
+          });
+          if (error) {
+            const ctx = (error as any).context;
+            const status = ctx?.status;
+            const wrapped = new Error(error.message) as Error & { status?: number };
+            wrapped.status = status;
+            throw wrapped;
+          }
+        },
+        {
+          attempts: 3,
+          baseMs: 600,
+          maxMs: 4000,
+          shouldRetry: shouldRetryTransientOnly,
+        },
+      );
       navigate(`/conversations/${conversationId}?analyzing=1`, { replace: true });
     } catch (err) {
       toast({
