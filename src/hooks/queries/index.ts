@@ -40,7 +40,7 @@ export type { RecordingWithAnalysis } from './useResults'
 export { useGoals } from './useGoals'
 export { usePersonalRecords } from './usePersonalRecords'
 export { useWeeklyReviews } from './useWeeklyReviews'
-export { useConversations } from './useConversations'
+
 export { useConversationResults, useConversationResult } from './useConversationResults'
 export { useSkillMetrics } from './useSkillMetrics'
 export { useActivityHeatmap } from './useActivityHeatmap'
