@@ -1,12 +1,15 @@
 /**
- * Wywołuje GPT-4o z promptem specyficznym dla mentora.
- * Zwraca pełną analizę w głosie i stylu wybranego mentora.
+ * Wywoluje flagowy model GPT-5.6-sol przez Lovable AI Gateway
+ * z promptem specyficznym dla mentora (v1).
+ * Zwraca pelna analize w glosie i stylu wybranego mentora.
  */
 
 import type { MentorAnalysisResponse } from "./mentor-prompt-builder.ts";
 import { buildMentorAnalysisPrompt } from "./mentor-prompt-builder.ts";
 import type { RawMetrics, SpeakerWithCategory } from "./types.ts";
 import { AnalysisError } from "./types.ts";
+import { callGatewayJson } from "../_shared/gateway-chat.ts";
+
 
 interface CallMentorAnalysisParams {
   transcript: string;
@@ -76,54 +79,22 @@ export async function callMentorAnalysis({
     },
   });
 
-  // Wywołaj GPT-4o (nie mini - potrzebujemy jakości)
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Jesteś ekspertem w analizie mowy i coachingu publicznego. Zwracasz TYLKO czysty JSON bez żadnych komentarzy.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7, // Wyższa temperatura dla "żywego" stylu mentora
-      max_tokens: 1500,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new AnalysisError(
-      `Mentor analysis API error ${response.status}: ${errorBody}`
-    );
-  }
-
-  const data = await response.json();
-  const content: string | undefined = data?.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new AnalysisError("Empty response from mentor analysis GPT");
-  }
-
+  // Wywolaj GPT-5.6-sol (flagowy) przez Lovable AI Gateway
   let parsed: MentorAnalysisResponse;
   try {
-    parsed = JSON.parse(content) as MentorAnalysisResponse;
-  } catch {
+    parsed = await callGatewayJson<MentorAnalysisResponse>({
+      model: "openai/gpt-5.6-sol",
+      systemPrompt:
+        "Jestes ekspertem w analizie mowy i coachingu publicznego. Zwracasz TYLKO czysty JSON bez zadnych komentarzy, markdown, ani innych oznaczen.",
+      userPrompt: prompt,
+      timeoutMs: 150_000,
+    });
+  } catch (err) {
     throw new AnalysisError(
-      `Mentor analysis returned non-JSON: ${content.slice(0, 200)}`
+      `Mentor analysis (GPT-5.6-sol) failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+
 
   // Walidacja struktury odpowiedzi
   if (
