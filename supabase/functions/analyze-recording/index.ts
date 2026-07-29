@@ -699,6 +699,11 @@ async function processInBackground({
         how_to_fix: enhancedData?.how_to_fix || null,
         metrics_with_context: enhancedData?.metrics_with_context || null,
         next_step: enhancedData?.next_step || null,
+        // Deterministyczny scoring — zapisujemy zeby UI mogl pokazac breakdown
+        hard_score: hardBreakdown.weighted,
+        mentor_delta: mentorDelta,
+        score_breakdown: hardBreakdown,
+
       })
       .select()
       .single();
