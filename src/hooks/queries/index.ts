@@ -43,3 +43,10 @@ export { useProgressData } from './useProgressData'
 export type { ProgressData } from './useProgressData'
 
 export { useConversationResults, useConversationResult } from './useConversationResults'
+
+// Legacy — kept so out-of-scope pages (Records, Reviews) still compile.
+export { usePersonalRecords } from './usePersonalRecords'
+export { useWeeklyReviews } from './useWeeklyReviews'
+export { useActivityHeatmap } from './useActivityHeatmap'
+export { useSkillMetrics } from './useSkillMetrics'
+
