@@ -25,6 +25,7 @@ interface GoalDetailModalProps {
   goal: Goal | null;
   open: boolean;
   onClose: () => void;
+  onDelete?: () => void | Promise<void>;
 }
 
 function daysRemaining(deadline: string) {
@@ -34,7 +35,7 @@ function daysRemaining(deadline: string) {
   return `${diff}d left`;
 }
 
-export function GoalDetailModal({ goal, open, onClose }: GoalDetailModalProps) {
+export function GoalDetailModal({ goal, open, onClose, onDelete }: GoalDetailModalProps) {
   if (!goal) return null;
   const nearComplete = goal.progressPercent >= 75;
 
@@ -186,13 +187,17 @@ export function GoalDetailModal({ goal, open, onClose }: GoalDetailModalProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              toast.success("Goal deleted");
-              onClose();
+            onClick={async () => {
+              if (onDelete) {
+                await onDelete();
+              } else {
+                toast.success("Cel usunięty");
+                onClose();
+              }
             }}
             className="text-destructive hover:text-destructive ml-auto"
           >
-            <Trash2 className="h-4 w-4" /> Delete
+            <Trash2 className="h-4 w-4" /> Usuń
           </Button>
         </div>
       </DialogContent>
