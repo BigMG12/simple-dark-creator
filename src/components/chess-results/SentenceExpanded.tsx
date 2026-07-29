@@ -11,7 +11,7 @@ interface Props {
   onNext: () => void;
 }
 
-type View = 'commentary' | 'alternative' | 'explanation';
+type View = 'commentary' | 'rewrite' | 'why' | 'explanation';
 
 export function SentenceExpanded({
   sentence,
@@ -38,21 +38,43 @@ export function SentenceExpanded({
           </div>
 
           {view === 'commentary' && (
-            <p className="text-base md:text-lg leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
-              "{sentence.mentor_commentary}"
-            </p>
+            <div className="space-y-2">
+              <p className="text-base md:text-lg leading-relaxed italic" style={{ fontFamily: 'Georgia, serif' }}>
+                "{sentence.mentor_commentary}"
+              </p>
+              {sentence.technique_tag && (
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase tracking-widest"
+                  style={{ backgroundColor: `${accent}18`, color: accent, border: `1px solid ${accent}40` }}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  {sentence.technique_tag.replace(/-/g, ' ')}
+                </div>
+              )}
+            </div>
           )}
 
-          {view === 'alternative' && (
+          {view === 'rewrite' && (
             <div className="space-y-2">
               <div className="font-mono text-[10px] uppercase tracking-[0.3em]" style={{ color: accent }}>
-                Powiedz tak
+                Lepsza wersja
               </div>
               <p
                 className="text-base md:text-lg leading-relaxed italic px-4 py-3 rounded-lg"
                 style={{ fontFamily: 'Georgia, serif', backgroundColor: `${accent}10`, borderLeft: `3px solid ${accent}` }}
               >
-                "{sentence.alternative}"
+                "{sentence.rewrite || sentence.alternative}"
+              </p>
+            </div>
+          )}
+
+          {view === 'why' && (
+            <div className="space-y-2">
+              <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+                Jak mentor to widzi
+              </div>
+              <p className="text-sm md:text-base leading-relaxed text-foreground/85">
+                {sentence.why_it_matters || sentence.explanation}
               </p>
             </div>
           )}
@@ -60,7 +82,7 @@ export function SentenceExpanded({
           {view === 'explanation' && (
             <div className="space-y-2">
               <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Dlaczego to ważne
+                Dlaczego to wazne
               </div>
               <p className="text-sm md:text-base leading-relaxed text-foreground/85">
                 {sentence.explanation}
@@ -73,15 +95,15 @@ export function SentenceExpanded({
       <div className="flex flex-wrap gap-2 pl-13">
         <ActionButton
           icon={<Sparkles className="w-3.5 h-3.5" />}
-          label="Lepiej powiedz"
-          active={view === 'alternative'}
-          onClick={() => setView('alternative')}
+          label="Lepsza wersja"
+          active={view === 'rewrite'}
+          onClick={() => setView('rewrite')}
         />
         <ActionButton
           icon={<Lightbulb className="w-3.5 h-3.5" />}
-          label="Wytłumacz"
-          active={view === 'explanation'}
-          onClick={() => setView('explanation')}
+          label="Jak mentor to widzi"
+          active={view === 'why'}
+          onClick={() => setView('why')}
         />
         <ActionButton
           icon={<ArrowRight className="w-3.5 h-3.5" />}
@@ -90,6 +112,7 @@ export function SentenceExpanded({
           onClick={onNext}
         />
       </div>
+
       {sentence.prosody?.emotions_top5 && sentence.prosody.emotions_top5.length > 0 && (
         <ProsodyBars emotions={sentence.prosody.emotions_top5} />
       )}

@@ -29,9 +29,10 @@ const CORS_HEADERS: Record<string, string> = {
 
 const JSON_HEADERS = { ...CORS_HEADERS, "Content-Type": "application/json" };
 
-const OPENAI_MODEL = "gpt-4o";
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-const OPENAI_TIMEOUT_MS = 120_000;
+const GATEWAY_MODEL = "openai/gpt-5.6-sol";
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY_TIMEOUT_MS = 180_000;
+
 
 type ConversationType =
   | "sales_call"
@@ -167,10 +168,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const openaiKey = Deno.env.get("OPENAI_API_KEY");
-  if (!supabaseUrl || !serviceRoleKey || !openaiKey) {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!supabaseUrl || !serviceRoleKey || !lovableKey) {
     return json({ error: "Server misconfigured" }, 500);
   }
+
 
   // This function is called internally with the service_role key as bearer.
   // We don't need to validate a user JWT, but we DO require the bearer to
@@ -226,7 +228,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // ── Run GPT-4o ─────────────────────────────────────────────────────────
   let analysis: AnalysisResult;
   try {
-    analysis = await runAnalysis(convo, openaiKey);
+    analysis = await runAnalysis(convo, lovableKey);
   } catch (err) {
     console.error("[analyze-conversation] Analysis failed:", err);
     const msg = err instanceof Error ? err.message : "Analysis failed";
@@ -292,8 +294,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
 async function runAnalysis(
   convo: ConversationRow,
-  openaiKey: string,
+  lovableKey: string,
 ): Promise<AnalysisResult> {
+
   const type = convo.conversation_type;
   const metrics = TYPE_METRICS[type];
 
@@ -364,23 +367,24 @@ ${convo.transcript_full ?? "(not available)"}
 ${convo.duration_seconds ?? "unknown"} seconds`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), GATEWAY_TIMEOUT_MS);
 
   let res: Response;
   try {
-    res = await fetch(OPENAI_URL, {
+    res = await fetch(GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openaiKey}`,
+        "Lovable-API-Key": lovableKey,
         "Content-Type": "application/json",
+        "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
+        model: GATEWAY_MODEL,
+        reasoning_effort: "none",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
         response_format: { type: "json_object" },
       }),
       signal: controller.signal,
@@ -388,7 +392,7 @@ ${convo.duration_seconds ?? "unknown"} seconds`;
   } catch (err) {
     clearTimeout(timer);
     if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`OpenAI request timed out after ${OPENAI_TIMEOUT_MS}ms`);
+      throw new Error(`Gateway request timed out after ${GATEWAY_TIMEOUT_MS}ms`);
     }
     throw err;
   }
@@ -396,14 +400,15 @@ ${convo.duration_seconds ?? "unknown"} seconds`;
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`OpenAI returned ${res.status}: ${text.slice(0, 500)}`);
+    throw new Error(`Gateway returned ${res.status}: ${text.slice(0, 500)}`);
   }
 
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
   if (!content || typeof content !== "string") {
-    throw new Error("OpenAI returned no content");
+    throw new Error("Gateway returned no content");
   }
+
 
   let parsed: AnalysisResult;
   try {

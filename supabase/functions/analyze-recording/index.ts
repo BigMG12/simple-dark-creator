@@ -32,7 +32,10 @@ import {
   computeLevelFromXP,
   computePauseMasteryScore,
   computeVocabDepthScore,
+  computeHardScore,
+  blendMentorScore,
 } from "./scoring.ts";
+
 
 import { computeFullStyleMatch } from "./style-matching.ts";
 import { callMentorAnalysis } from "./mentor-analysis.ts";
@@ -621,6 +624,30 @@ async function processInBackground({
       throw new AnalysisError("No mentor analysis result available");
     }
 
+    // ── Deterministyczny hard score + mentor delta ─────────────────────────
+    const hardBreakdown = computeHardScore({
+      wpm: rawMetrics.wpm,
+      wpmMin: speaker.ideal_wpm_min ?? 120,
+      wpmMax: speaker.ideal_wpm_max ?? 160,
+      fillerCount: rawMetrics.total_filler_count,
+      durationSeconds: rawMetrics.duration_seconds,
+      transcript,
+      pauseMasteryScore: rawMetrics.pause_mastery_score ?? 50,
+      vocabDepthScore: rawMetrics.vocab_depth_score ?? 50,
+      prosodyRadar: null, // Prosody radar dolatuje pozniej z analyze-prosody
+      styleMatchScore: styleMatchScore,
+    });
+    const { finalScore, mentorDelta } = blendMentorScore(
+      hardBreakdown.weighted,
+      overallScore,
+    );
+    const rawMentorScore = overallScore;
+    overallScore = finalScore;
+    console.log(
+      `[analyze-recording bg ${recordingId}] scoring: hard=${hardBreakdown.weighted} mentor=${rawMentorScore} delta=${mentorDelta} final=${finalScore}`,
+    );
+
+
     const mentorAnalysisForLegacyFlows: MentorAnalysisResponse = mentorAnalysisV1 ?? {
       in_character_verdict: feedbackSummary,
       overall_score: overallScore,
@@ -672,6 +699,11 @@ async function processInBackground({
         how_to_fix: enhancedData?.how_to_fix || null,
         metrics_with_context: enhancedData?.metrics_with_context || null,
         next_step: enhancedData?.next_step || null,
+        // Deterministyczny scoring — zapisujemy zeby UI mogl pokazac breakdown
+        hard_score: hardBreakdown.weighted,
+        mentor_delta: mentorDelta,
+        score_breakdown: hardBreakdown,
+
       })
       .select()
       .single();

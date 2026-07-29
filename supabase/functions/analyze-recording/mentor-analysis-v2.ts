@@ -1,12 +1,14 @@
 /**
- * Wywołuje GPT-4o z promptem specyficznym dla mentora (v2).
- * Zwraca pełną analizę w głosie i stylu wybranego mentora używając 12-warstwowego DNA.
+ * Wywoluje flagowy model GPT-5.6-sol przez Lovable AI Gateway (v2).
+ * Zwraca pelna analize w glosie i stylu wybranego mentora uzywajac 12-warstwowego DNA.
  */
 
 import type { MentorAnalysisResponseV2 } from "./mentor-prompt-builder-v2.ts";
 import { buildMentorAnalysisPrompt, describeV2PersonaProfile, isV2PersonaProfile } from "./mentor-prompt-builder-v2.ts";
 import type { RawMetrics, SpeakerWithCategory } from "./types.ts";
 import { AnalysisError } from "./types.ts";
+import { callGatewayJson } from "../_shared/gateway-chat.ts";
+
 
 interface CallMentorAnalysisV2Params {
   transcript: string;
@@ -67,54 +69,22 @@ export async function callMentorAnalysisV2({
     userCategory: speaker.speaker_categories?.name || 'general',
   });
 
-  // Wywołaj GPT-4o (nie mini - potrzebujemy jakości dla 12-warstwowego DNA)
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Jesteś ekspertem w analizie mowy i coachingu publicznego. Zwracasz TYLKO czysty JSON bez żadnych komentarzy, markdown, ani innych oznaczeń. Feedback jest BRUTALNY, KONKRETNY, bazowany na RZECZYWISTYCH METRYKACH.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.8, // Wyższa temperatura dla "brutalnego" stylu mentora
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new AnalysisError(
-      `Mentor analysis V2 API error ${response.status}: ${errorBody}`
-    );
-  }
-
-  const data = await response.json();
-  const content: string | undefined = data?.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new AnalysisError("Empty response from mentor analysis V2 GPT");
-  }
-
+  // Wywolaj GPT-5.6-sol (flagowy reasoning model) przez Lovable AI Gateway
   let parsed: MentorAnalysisResponseV2;
   try {
-    parsed = JSON.parse(content) as MentorAnalysisResponseV2;
-  } catch {
+    parsed = await callGatewayJson<MentorAnalysisResponseV2>({
+      model: "openai/gpt-5.6-sol",
+      systemPrompt:
+        "Jestes ekspertem w analizie mowy i coachingu publicznego. Zwracasz TYLKO czysty JSON bez zadnych komentarzy, markdown, ani innych oznaczen. Feedback jest BRUTALNY, KONKRETNY, bazowany na RZECZYWISTYCH METRYKACH.",
+      userPrompt: prompt,
+      timeoutMs: 180_000,
+    });
+  } catch (err) {
     throw new AnalysisError(
-      `Mentor analysis V2 returned non-JSON: ${content.slice(0, 200)}`
+      `Mentor analysis V2 (GPT-5.6-sol) failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+
 
   // Walidacja struktury odpowiedzi V2
   if (

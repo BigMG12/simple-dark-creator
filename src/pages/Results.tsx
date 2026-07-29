@@ -17,6 +17,8 @@ import { NextStepCard } from "@/components/results/NextStepCard";
 import { WeakestStrongestBadges } from "@/components/results/WeakestStrongestBadges";
 import { HeroStrip } from "@/components/results/HeroStrip";
 import { SectionHeader } from "@/components/results/SectionHeader";
+import { ScoreBreakdown } from "@/components/results/ScoreBreakdown";
+
 
 import { BrutalCTA } from "@/components/results/BrutalCTA";
 import { useResults } from "@/hooks/queries";
@@ -148,8 +150,21 @@ export default function Results() {
               label={analysis.verdict_label}
               score={analysis.overall_score || 0}
               accentColor={accentColor}
+              hardScore={typeof analysis.hard_score === "number" ? analysis.hard_score : null}
+              mentorDelta={typeof analysis.mentor_delta === "number" ? analysis.mentor_delta : null}
             />
           )}
+
+          {analysis.score_breakdown && typeof analysis.hard_score === "number" && (
+            <ScoreBreakdown
+              breakdown={analysis.score_breakdown}
+              hardScore={analysis.hard_score}
+              mentorDelta={analysis.mentor_delta ?? 0}
+              finalScore={analysis.overall_score || 0}
+              accentColor={accentColor}
+            />
+          )}
+
 
           {analysis.weakest_dimension && analysis.strongest_dimension && (
             <WeakestStrongestBadges

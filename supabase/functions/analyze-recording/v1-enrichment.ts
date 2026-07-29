@@ -93,22 +93,26 @@ export async function enrichV1WithAI(
     const resp = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        "Lovable-API-Key": lovableApiKey,
         "Content-Type": "application/json",
+        "X-Lovable-AIG-SDK": "fetch",
       },
+
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-5.6-terra",
+        reasoning_effort: "none",
         messages: [
           {
             role: "system",
             content:
-              "Jesteś mentorem ze sceny. Mówisz do swojego ucznia bezpośrednio, brutalnie, konkretnie. Zawsze zwracasz TYLKO czysty JSON.",
+              "Jestes mentorem ze sceny. Mowisz do swojego ucznia bezposrednio, brutalnie, konkretnie. Zawsze zwracasz TYLKO czysty JSON.",
           },
           { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },
       }),
     });
+
 
     if (!resp.ok) {
       console.warn(

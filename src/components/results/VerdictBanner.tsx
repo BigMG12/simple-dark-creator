@@ -4,6 +4,8 @@ interface VerdictBannerProps {
   label: "Surowy" | "Solidny" | "Mocny" | "Mistrzowski";
   score: number;
   accentColor: string;
+  hardScore?: number | null;
+  mentorDelta?: number | null;
 }
 
 const VERDICT_CONFIG: Record<
@@ -40,9 +42,15 @@ function scoreToStars(score: number): number {
   return 0;
 }
 
-export function VerdictBanner({ label, score, accentColor }: VerdictBannerProps) {
+export function VerdictBanner({ label, score, accentColor, hardScore, mentorDelta }: VerdictBannerProps) {
   const config = VERDICT_CONFIG[label];
   const stars = scoreToStars(score);
+  const showBreakdown =
+    typeof hardScore === "number" &&
+    typeof mentorDelta === "number" &&
+    Number.isFinite(hardScore) &&
+    Number.isFinite(mentorDelta);
+  const deltaSign = (mentorDelta ?? 0) > 0 ? "+" : "";
 
   return (
     <div
@@ -86,7 +94,22 @@ export function VerdictBanner({ label, score, accentColor }: VerdictBannerProps)
         </div>
 
         <p className="text-xs md:text-sm text-muted-foreground max-w-xs">{config.sub}</p>
+
+        {showBreakdown && (
+          <div
+            className="mt-1 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-widest"
+            style={{ borderColor: `${accentColor}30`, color: accentColor }}
+            title="Twardy score z metryk + korekta mentora"
+          >
+            <span className="text-muted-foreground">Twardy</span>
+            <span className="tabular-nums text-foreground/90">{hardScore}</span>
+            <span className="opacity-40">·</span>
+            <span className="text-muted-foreground">Mentor</span>
+            <span className="tabular-nums">{deltaSign}{mentorDelta}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
