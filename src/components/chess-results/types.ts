@@ -14,6 +14,8 @@ export interface SentenceProsody {
   emotions_top5: ProsodyEmotionBar[];
 }
 
+export type SentenceSeverity = 'info' | 'warn' | 'critical';
+
 export interface SentenceAnalysis {
   index: number;
   text: string;
@@ -21,11 +23,19 @@ export interface SentenceAnalysis {
   end_seconds: number;
   score: number;
   label: SentenceLabel;
+  severity?: SentenceSeverity;
   mentor_commentary: string;
   alternative: string;
   explanation: string;
+  /** GPT-5.6-sol: jedna konkretna lepsza wersja tego zdania — do skopiowania */
+  rewrite?: string;
+  /** Krótkie "dlaczego to ważne" w stylu mentora */
+  why_it_matters?: string;
+  /** Tag techniki, np. "pauza-po-kluczowym-slowie", "kill-filler" */
+  technique_tag?: string;
   prosody?: SentenceProsody | null;
 }
+
 
 export interface AltMentorPerspective {
   mentor_id: string;
