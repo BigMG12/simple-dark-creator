@@ -1,6 +1,7 @@
 -- ============================================================
--- PROGRESS — user_goals
+-- PROGRESS — user_goals (idempotent)
 -- Wklej to w SQL Editor Supabase na projekcie hthjuoswarvsfssxqxxj
+-- Można uruchamiać wielokrotnie bez błędu.
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.user_goals (
@@ -23,16 +24,20 @@ GRANT ALL ON public.user_goals TO service_role;
 
 ALTER TABLE public.user_goals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user_goals_select_own" ON public.user_goals;
 CREATE POLICY "user_goals_select_own" ON public.user_goals
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_goals_insert_own" ON public.user_goals;
 CREATE POLICY "user_goals_insert_own" ON public.user_goals
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_goals_update_own" ON public.user_goals;
 CREATE POLICY "user_goals_update_own" ON public.user_goals
   FOR UPDATE TO authenticated
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "user_goals_delete_own" ON public.user_goals;
 CREATE POLICY "user_goals_delete_own" ON public.user_goals
   FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
