@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, Target, Flame } from "lucide-react";
+import { AngryStars } from "@/components/drills/AngryStars";
 
 interface VerdictBannerProps {
   label: "Surowy" | "Solidny" | "Mocny" | "Mistrzowski";
@@ -6,63 +6,86 @@ interface VerdictBannerProps {
   accentColor: string;
 }
 
-const VERDICT_CONFIG = {
+const VERDICT_CONFIG: Record<
+  VerdictBannerProps["label"],
+  { headline: string; sub: string; textClass: string }
+> = {
   Surowy: {
-    icon: Flame,
-    gradient: "from-red-500/20 to-orange-500/20",
-    textColor: "text-red-400",
-    description: "Sporo do poprawy, ale każdy mistrz kiedyś zaczynał",
+    headline: "Nice Try!",
+    sub: "Każdy mistrz kiedyś zaczynał",
+    textClass: "text-red-400",
   },
   Solidny: {
-    icon: Target,
-    gradient: "from-yellow-500/20 to-amber-500/20",
-    textColor: "text-yellow-400",
-    description: "Solidna podstawa. Teraz czas na szlif",
+    headline: "Level Cleared!",
+    sub: "Solidna podstawa — czas na szlif",
+    textClass: "text-yellow-300",
   },
   Mocny: {
-    icon: TrendingUp,
-    gradient: "from-blue-500/20 to-cyan-500/20",
-    textColor: "text-blue-400",
-    description: "Mocna forma. Jesteś blisko perfekcji",
+    headline: "Great Job!",
+    sub: "Mocna forma. Blisko perfekcji",
+    textClass: "text-amber-300",
   },
   Mistrzowski: {
-    icon: Trophy,
-    gradient: "from-purple-500/20 to-pink-500/20",
-    textColor: "text-purple-400",
-    description: "Mistrzowski poziom. To jest to",
+    headline: "Perfect!",
+    sub: "Mistrzowski poziom. To jest to",
+    textClass: "text-amber-200",
   },
 };
 
+/** 0–100 → 0–3 stars, Angry Birds style. */
+function scoreToStars(score: number): number {
+  if (score >= 85) return 3;
+  if (score >= 65) return 2;
+  if (score >= 40) return 1;
+  return 0;
+}
+
 export function VerdictBanner({ label, score, accentColor }: VerdictBannerProps) {
   const config = VERDICT_CONFIG[label];
-  const Icon = config.icon;
+  const stars = scoreToStars(score);
 
   return (
     <div
-      className="rounded-xl p-3.5 md:p-4 bg-card/40 border flex items-center gap-3"
-      style={{ borderColor: `${accentColor}40` }}
+      className="relative rounded-2xl overflow-hidden border bg-gradient-to-b from-background/80 to-surface/60 px-5 py-6 md:py-8 text-center"
+      style={{ borderColor: `${accentColor}30` }}
     >
-      <div className="h-9 w-9 rounded-lg bg-surface flex items-center justify-center shrink-0">
-        <Icon className={`h-4 w-4 ${config.textColor}`} />
-      </div>
-      <div className="min-w-0 flex-1">
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none absolute inset-x-0 -top-24 h-48 blur-3xl opacity-40"
+        style={{ background: `radial-gradient(closest-side, ${accentColor}, transparent)` }}
+      />
+
+      <div className="relative flex flex-col items-center gap-3">
+        <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+          Werdykt
+        </div>
+        <h2
+          className={`font-display text-3xl md:text-4xl leading-none tracking-tight ${config.textClass}`}
+          style={{ textShadow: "0 2px 12px rgba(255,180,0,0.35)" }}
+        >
+          {config.headline}
+        </h2>
+
+        <div className="my-1">
+          <AngryStars earned={stars} size="lg" />
+        </div>
+
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
-            Werdykt
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            Score
           </span>
-          <h2 className={`font-display text-base md:text-lg ${config.textColor} leading-none`}>
-            {label}
-          </h2>
+          <span
+            className="font-display text-2xl tabular-nums leading-none"
+            style={{ color: accentColor }}
+          >
+            {score}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            · {label}
+          </span>
         </div>
-        <p className="text-muted-foreground text-xs mt-0.5 truncate">
-          {config.description}
-        </p>
-      </div>
-      <div className="text-right shrink-0">
-        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Score</div>
-        <div className="font-display text-xl leading-none" style={{ color: accentColor }}>
-          {score}
-        </div>
+
+        <p className="text-xs md:text-sm text-muted-foreground max-w-xs">{config.sub}</p>
       </div>
     </div>
   );
