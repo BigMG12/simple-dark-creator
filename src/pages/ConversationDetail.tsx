@@ -18,7 +18,7 @@ import { CONVERSATION_TYPE_META, type ConversationType } from "@/data/conversati
 import { CATEGORY_BY_ID } from "@/data/categories";
 import { cn } from "@/lib/utils";
 import { HeroStrip } from "@/components/results/HeroStrip";
-import { MentorMonogramBackdrop } from "@/components/results/MentorMonogramBackdrop";
+
 import { MentorAvatar } from "@/components/results/MentorAvatar";
 import { VerdictBanner } from "@/components/results/VerdictBanner";
 import { WeakestStrongestBadges } from "@/components/results/WeakestStrongestBadges";

@@ -17,7 +17,7 @@ import { NextStepCard } from "@/components/results/NextStepCard";
 import { WeakestStrongestBadges } from "@/components/results/WeakestStrongestBadges";
 import { HeroStrip } from "@/components/results/HeroStrip";
 import { SectionHeader } from "@/components/results/SectionHeader";
-import { MentorMonogramBackdrop } from "@/components/results/MentorMonogramBackdrop";
+
 import { BrutalCTA } from "@/components/results/BrutalCTA";
 import { useResults } from "@/hooks/queries";
 import { useTrajectory } from "@/hooks/queries/useTrajectory";
