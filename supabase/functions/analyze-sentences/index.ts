@@ -255,14 +255,14 @@ async function analyzeSentencesWithGPT4o(
     "Mentor";
 
   const systemPrompt = `
-Jesteś ${mentorName}.
+Jestes ${mentorName}.
 
 TWOJE 12-WARSTWOWE DNA:
 ${JSON.stringify(mentorDNA, null, 2).slice(0, 6000)}
 
-ZADANIE: Oceń KAŻDE zdanie usera per-sentence. To jest jak chess.com — pokazujesz dokładnie GDZIE był error i jak to poprawić, zdanie po zdaniu.
+ZADANIE: Ocen KAZDE zdanie usera per-sentence. To jest jak chess.com — pokazujesz dokladnie GDZIE byl error, jak to poprawic, JAKIEJ techniki uzyc i dlaczego to wazne.
 
-DLA KAŻDEGO ZDANIA zwróć JSON:
+DLA KAZDEGO ZDANIA zwroc JSON:
 {
   "index": <int>,
   "text": "<oryginalne zdanie>",
@@ -270,22 +270,24 @@ DLA KAŻDEGO ZDANIA zwróć JSON:
   "end_seconds": <float>,
   "score": <int 0-100>,
   "label": "critical" | "weak" | "good" | "excellent",
+  "severity": "info" | "warn" | "critical",
   "mentor_commentary": "<2-3 zdania W TWOIM STYLU po polsku>",
-  "alternative": "<jak BY POWIEDZIAŁ TO MENTOR — konkretna alternatywa>",
-  "explanation": "<dlaczego to ważne — 1-2 zdania>"
+  "alternative": "<jak BY POWIEDZIAL TO MENTOR — konkretna alternatywa>",
+  "rewrite": "<JEDNA konkretna lepsza wersja tego zdania w Twoim stylu — do skopiowania>",
+  "why_it_matters": "<1 zdanie: dlaczego to wazne w Twoim stylu>",
+  "technique_tag": "<krotki tag np. 'pauza-po-kluczowym-slowie' | 'trojka-retoryczna' | 'kill-filler' | 'konkretna-liczba' | 'signature-move' | 'brak-hooka' | 'vague-language'>",
+  "explanation": "<dlaczego to wazne — 1-2 zdania>"
 }
 
 RUBRYKA SCORING (rygorystycznie):
-- excellent (85+): mocne otwarcie, konkretna liczba/fakt, pewność, signature move tego mentora
-- good (70-84): solidne, na temat, bez błędów, ale brak iskry
-- weak (40-69): fillery, niepewność, vague, "myślę że", "może"
-- critical (<40): 3+ fillery, "super fajne", "naprawdę", "dla każdego", brak treści
+- excellent (85+): mocne otwarcie, konkretna liczba/fakt, pewnosc, signature move tego mentora → severity=info
+- good (70-84): solidne, na temat, bez bledow, ale brak iskry → severity=info
+- weak (40-69): fillery, niepewnosc, vague, "mysle ze", "moze" → severity=warn
+- critical (<40): 3+ fillery, "super fajne", "naprawde", "dla kazdego", brak tresci → severity=critical
 
-TON KOMENTARZY: ŚCIŚLE W STYLU MENTORA (z LAYER_3_linguistic_DNA, LAYER_7_feedback_DNA, LAYER_12_polish_adaptations).
-Steve Jobs mówi "Wytnij. Wytnij więcej.", Goggins "Wymiękłeś. Wstawaj.", Voss "Co przed chwilą zrobiłeś?".
-NIE używaj fraz z LAYER_11.things_*_NEVER_say.
+TON KOMENTARZY: SCISLE W STYLU MENTORA. NIE uzywaj generycznych fraz "cos do poprawy". Bezposrednio, brutalnie, konkretnie.
 
-ZWRÓĆ TYLKO JSON ARRAY (bez markdown), z dokładnie ${sentences.length} elementami.
+ZWROC TYLKO JSON: { "sentences": [...] } z dokladnie ${sentences.length} elementami.
 `;
 
   const userPrompt = `
@@ -299,20 +301,25 @@ ${sentences
   )
   .join("\n")}
 
-Oceń każde i zwróć JSON: { "sentences": [...] }
+Ocen kazde i zwroc JSON: { "sentences": [...] }
 `;
 
-  const openaiResponse = await fetch(
-    "https://api.openai.com/v1/chat/completions",
+  // Wywolaj GPT-5.6-sol (flagowy reasoning model) przez Lovable AI Gateway
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovableKey) throw new Error("LOVABLE_API_KEY not set");
+
+  const gatewayResp = await fetch(
+    "https://ai.gateway.lovable.dev/v1/chat/completions",
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
         "Content-Type": "application/json",
+        "Lovable-API-Key": lovableKey,
+        "X-Lovable-AIG-SDK": "fetch",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
-        temperature: 0.6,
+        model: "openai/gpt-5.6-sol",
+        reasoning_effort: "none",
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
@@ -322,24 +329,24 @@ Oceń każde i zwróć JSON: { "sentences": [...] }
     },
   );
 
-  if (!openaiResponse.ok) {
-    const errText = await openaiResponse.text();
-    console.error("[analyze-sentences] GPT-4o failed:", errText);
-    throw new Error("GPT-4o request failed");
+  if (!gatewayResp.ok) {
+    const errText = await gatewayResp.text();
+    console.error("[analyze-sentences] Gateway failed:", errText);
+    throw new Error(`Gateway ${gatewayResp.status}: ${errText.slice(0, 200)}`);
   }
 
-  const data = await openaiResponse.json();
+  const data = await gatewayResp.json();
   let parsed;
   try {
     parsed = JSON.parse(data.choices[0].message.content);
   } catch (e) {
     console.error("[analyze-sentences] JSON parse failed:", e);
-    throw new Error("Malformed GPT-4o response");
+    throw new Error("Malformed gateway response");
   }
 
   const sentencesArray = parsed.sentences || parsed.array || parsed;
   if (!Array.isArray(sentencesArray)) {
-    throw new Error("GPT-4o response is not an array");
+    throw new Error("Gateway response is not an array");
   }
 
   // Pad/truncate to match input length exactly
@@ -349,19 +356,29 @@ Oceń każde i zwróć JSON: { "sentences": [...] }
     const s = sentencesArray[idx] || {};
     const rawScore = typeof s.score === "number" && Number.isFinite(s.score) ? s.score : 50;
     const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+    const label = ["critical", "weak", "good", "excellent"].includes(s.label)
+      ? s.label
+      : score >= 85 ? "excellent" : score >= 70 ? "good" : score >= 40 ? "weak" : "critical";
+    const severity = ["info", "warn", "critical"].includes(s.severity)
+      ? s.severity
+      : score >= 65 ? "info" : score >= 40 ? "warn" : "critical";
+
     aligned.push({
       index: idx,
       text: original?.text || s.text || "",
       start_seconds: original?.start_seconds ?? 0,
       end_seconds: original?.end_seconds ?? (original?.start_seconds ?? 0) + 5,
       score,
-      label: ["critical", "weak", "good", "excellent"].includes(s.label)
-        ? s.label
-        : score >= 85 ? "excellent" : score >= 70 ? "good" : score >= 40 ? "weak" : "critical",
+      label,
+      severity,
       mentor_commentary: s.mentor_commentary || "",
       alternative: s.alternative || "",
+      rewrite: s.rewrite || s.alternative || "",
+      why_it_matters: s.why_it_matters || "",
+      technique_tag: s.technique_tag || "",
       explanation: s.explanation || "",
     });
   }
   return aligned;
 }
+
