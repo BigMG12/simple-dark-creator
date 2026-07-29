@@ -138,24 +138,8 @@ export default function Results() {
         accentColor={accentColor}
       />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-5 py-10 md:py-14 space-y-12">
-        {/* Hero pełny — mentor + monogram w tle (bez dubla ringu, ten jest w sticky) */}
-        <header className="relative text-center py-8">
-          <MentorMonogramBackdrop monogram={monogram} accentColor={accentColor} />
-          <div className="relative space-y-4">
-            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-              Twój raport · Mentor
-            </div>
-            <div className="flex justify-center">
-              <MentorAvatar
-                monogram={monogram}
-                name={mentorName}
-                category={category}
-                size="lg"
-              />
-            </div>
-          </div>
-        </header>
+      <div className="relative z-10 max-w-6xl mx-auto px-5 py-6 md:py-8 space-y-8">
+
 
         {/* SEKCJA 1 — WERDYKT */}
         <section id="section-1" className="space-y-6">
