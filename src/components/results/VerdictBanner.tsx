@@ -38,29 +38,32 @@ export function VerdictBanner({ label, score, accentColor }: VerdictBannerProps)
   const Icon = config.icon;
 
   return (
-    <div className={`card-premium p-6 md:p-8 bg-gradient-to-br ${config.gradient} border-2`} style={{ borderColor: accentColor }}>
-      <div className="flex items-center gap-4 mb-3">
-        <div className="h-14 w-14 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-elegant">
-          <Icon className="h-7 w-7 text-primary-foreground" />
-        </div>
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-1">
+    <div
+      className="rounded-xl p-3.5 md:p-4 bg-card/40 border flex items-center gap-3"
+      style={{ borderColor: `${accentColor}40` }}
+    >
+      <div className="h-9 w-9 rounded-lg bg-surface flex items-center justify-center shrink-0">
+        <Icon className={`h-4 w-4 ${config.textColor}`} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
             Werdykt
-          </div>
-          <h2 className={`font-display text-3xl md:text-4xl ${config.textColor}`}>
+          </span>
+          <h2 className={`font-display text-base md:text-lg ${config.textColor} leading-none`}>
             {label}
           </h2>
         </div>
-        <div className="ml-auto text-right">
-          <div className="font-mono text-xs text-muted-foreground mb-1">Score</div>
-          <div className="font-display text-4xl" style={{ color: accentColor }}>
-            {score}
-          </div>
+        <p className="text-muted-foreground text-xs mt-0.5 truncate">
+          {config.description}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Score</div>
+        <div className="font-display text-xl leading-none" style={{ color: accentColor }}>
+          {score}
         </div>
       </div>
-      <p className="text-foreground/80 text-sm md:text-base">
-        {config.description}
-      </p>
     </div>
   );
 }
