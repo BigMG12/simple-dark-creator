@@ -36,11 +36,10 @@ export { useChannelImport } from './useChannelImport'
 export { useResults } from './useResults'
 export type { RecordingWithAnalysis } from './useResults'
 
-// v2 — Goals, Records, Reviews
-export { useGoals } from './useGoals'
-export { usePersonalRecords } from './usePersonalRecords'
-export { useWeeklyReviews } from './useWeeklyReviews'
+// Goals + progress
+export { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from './useGoals'
+export type { UserGoal } from './useGoals'
+export { useProgressData } from './useProgressData'
+export type { ProgressData } from './useProgressData'
 
 export { useConversationResults, useConversationResult } from './useConversationResults'
-export { useSkillMetrics } from './useSkillMetrics'
-export { useActivityHeatmap } from './useActivityHeatmap'
