@@ -1,18 +1,7 @@
 import { cn } from "@/lib/utils";
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  PartyPopper,
-  AlertCircle,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, PartyPopper, AlertCircle, X } from "lucide-react";
 import confetti from "canvas-confetti";
 import { signInWithEmail, signInWithGoogle, signUpWithEmail } from "@/lib/auth";
 
@@ -29,10 +18,22 @@ interface AuthComponentProps {
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 48 48" width="18" height="18" {...props}>
-    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
-    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
-    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+    <path
+      fill="#FFC107"
+      d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+    />
+    <path
+      fill="#FF3D00"
+      d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+    />
+    <path
+      fill="#4CAF50"
+      d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+    />
+    <path
+      fill="#1976D2"
+      d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+    />
   </svg>
 );
 
@@ -93,8 +94,7 @@ export const AuthComponent = ({
 
   useEffect(() => {
     if (authStep === "password") setTimeout(() => passwordInputRef.current?.focus(), 300);
-    else if (authStep === "confirmPassword")
-      setTimeout(() => confirmPasswordInputRef.current?.focus(), 300);
+    else if (authStep === "confirmPassword") setTimeout(() => confirmPasswordInputRef.current?.focus(), 300);
   }, [authStep]);
 
   useEffect(() => {
@@ -198,9 +198,7 @@ export const AuthComponent = ({
                   {mode === "signin" ? "Witaj ponownie" : "Zaczynamy"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {mode === "signin"
-                    ? "Zaloguj się do swojego konta"
-                    : "Stwórz konto w kilka sekund"}
+                  {mode === "signin" ? "Zaloguj się do swojego konta" : "Stwórz konto w kilka sekund"}
                 </p>
               </>
             )}
@@ -210,17 +208,13 @@ export const AuthComponent = ({
                   {mode === "signin" ? "Wpisz hasło" : "Stwórz hasło"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {mode === "signin"
-                    ? `Kontynuuj jako ${email}`
-                    : "Minimum 6 znaków"}
+                  {mode === "signin" ? `Kontynuuj jako ${email}` : "Minimum 8 znaków oraz specjalna cyfra"}
                 </p>
               </>
             )}
             {authStep === "confirmPassword" && (
               <>
-                <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                  Ostatni krok
-                </h1>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Ostatni krok</h1>
                 <p className="text-sm text-muted-foreground">Potwierdź hasło, by kontynuować</p>
               </>
             )}
@@ -229,11 +223,7 @@ export const AuthComponent = ({
 
         {authStep === "email" && (
           <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => signInWithGoogle()}
-              className={cn(glassButton, "w-full gap-2")}
-            >
+            <button type="button" onClick={() => signInWithGoogle()} className={cn(glassButton, "w-full gap-2")}>
               <GoogleIcon /> Kontynuuj z Google
             </button>
             <div className="flex items-center gap-3 py-2">
@@ -339,11 +329,7 @@ export const AuthComponent = ({
                     onClick={() => setShowConfirmPassword((s) => !s)}
                     className="rounded-full p-2 text-foreground/70 hover:text-foreground"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 )}
                 <button
@@ -368,11 +354,7 @@ export const AuthComponent = ({
 
         <p className="text-center text-sm text-muted-foreground">
           {mode === "signin" ? "Nie masz konta?" : "Masz już konto?"}{" "}
-          <button
-            type="button"
-            onClick={switchMode}
-            className="font-medium text-foreground hover:underline"
-          >
+          <button type="button" onClick={switchMode} className="font-medium text-foreground hover:underline">
             {mode === "signin" ? "Zarejestruj się" : "Zaloguj się"}
           </button>
         </p>
