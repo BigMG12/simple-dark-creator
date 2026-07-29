@@ -409,18 +409,17 @@ export default function ConversationDetail() {
             </span>
           </div>
 
-          {/* Header: mentor backdrop + avatar */}
-          <header className="relative text-center py-8">
-            <MentorMonogramBackdrop monogram={monogram} accentColor={accentColor} />
-            <div className="relative space-y-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
+          {/* Header: compact mentor strip */}
+          <header className="flex items-center gap-3 py-2">
+            <MentorAvatar monogram={monogram} name={mentorName} category={categoryId} size="sm" />
+            <div className="min-w-0">
+              <div className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
                 Twój raport · Rozmowa
               </div>
-              <div className="flex justify-center">
-                <MentorAvatar monogram={monogram} name={mentorName} category={categoryId} size="lg" />
-              </div>
+              <div className="font-display text-sm text-foreground/90 truncate">{mentorName}</div>
             </div>
           </header>
+
 
           {/* SEKCJA 1 — WERDYKT */}
           <section id="section-1" className="space-y-6">
