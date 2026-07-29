@@ -34,7 +34,7 @@ const METRIC_HINTS: Record<WeakMetricKey, string> = {
   wpm: "Tempo skacze albo jest zbyt jednostajne.",
   energy: "Głos zbyt monotonny. Rozszerz zakres dynamiczny.",
   vocab: "Powtarzasz te same słowa. Rozbuduj repertuar.",
-  filler: "Za dużo „eee", „yyy", „no". Wytnij je.",
+  filler: 'Za dużo "eee", "yyy", "no". Wytnij je.',
 };
 
 /**
