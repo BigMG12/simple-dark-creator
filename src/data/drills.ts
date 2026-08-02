@@ -863,6 +863,404 @@ export const DRILLS: Drill[] = [
     content: "Opowiedz o momencie, w którym ktoś dał ci radę, którą zrozumiałeś dopiero lata później.",
     contentKind: "prompt",
   },
+
+  // ---------------------------------------------------------------------
+  // EKSTREMALNE — 30 zadań o najwyższej trudności (66–95)
+  // ---------------------------------------------------------------------
+
+  // Klarowność — ekstremalna
+  {
+    id: "66",
+    title: "Król Karol kupił królowej",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 50,
+    description: "Łamaniec, który łamie większość ludzi.",
+    instructions:
+      "5 czystych przejść z rzędu, każde szybsze od poprzedniego. Jedno potknięcie — licznik wraca do zera. Bez zwalniania na końcówkach.",
+    content:
+      "Król Karol kupił królowej Karolinie korale koloru koralowego, a królowa Karolina kupiła królowi Karolowi korale koloru karmazynowego.",
+    contentKind: "phrase",
+  },
+  {
+    id: "67",
+    title: "Trzy tysiące trzysta trzydzieści trzy",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 50,
+    description: "Test na 'trz' i 'strz' bez litości.",
+    instructions:
+      "Powiedz frazę 4 razy bez ani jednej uproszczonej zbitki. Każde 'trz' musi mieć trzy oddzielne dźwięki.",
+    content:
+      "Trzy tysiące trzysta trzydzieści trzy trzmiele trzepotały nad strzechą, a strzelec strzelał w trzcinę.",
+    contentKind: "phrase",
+  },
+  {
+    id: "68",
+    title: "Kaskada zbitek",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 55,
+    description: "Sześć najtrudniejszych zbitek pod rząd.",
+    instructions:
+      "Jedno przejście na jednym oddechu, bez dobierania powietrza. Potem drugie — o 30% szybciej.",
+    content:
+      "Zdżdżysty zmierzch, przeszczep, wszczepienie, źdźbło, bezwzględność, wszechstronność — i jeszcze raz od początku.",
+    contentKind: "phrase",
+  },
+  {
+    id: "69",
+    title: "Terminologia bez potknięć",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 50,
+    description: "Długie słowa w pełnym tempie.",
+    instructions:
+      "Przeczytaj listę trzy razy w tempie konwersacyjnym. Każde słowo w całości, bez skracania sylab.",
+    content: "Przeczytaj każde słowo płynnie, w normalnym tempie mowy.",
+    contentKind: "words",
+    wordList: [
+      "konstantynopolitańczykowianeczka",
+      "nieprawdopodobieństwo",
+      "międzynarodowość",
+      "wielkopolszczyzna",
+      "sprawiedliwościowy",
+    ],
+  },
+  {
+    id: "70",
+    title: "Ołówek między zębami — pełny tekst",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 55,
+    description: "Maksymalne obciążenie aparatu mowy.",
+    instructions:
+      "Włóż ołówek poziomo między zęby i przeczytaj cały akapit zrozumiale. Potem wyjmij i przeczytaj raz jeszcze — nagraj oba przejścia i porównaj.",
+    content:
+      "Precyzja artykulacji nie bierze się z talentu. Bierze się z tysiąca powtórzeń wykonanych wtedy, kiedy nikt nie patrzy, i z odwagi, żeby usłyszeć własne nagranie do końca.",
+    contentKind: "passage",
+  },
+  {
+    id: "71",
+    title: "Szept sceniczny 90 sekund",
+    category: "Klarowność",
+    difficulty: 5,
+    xp: 50,
+    description: "Zero głosu, pełna zrozumiałość.",
+    instructions:
+      "Mów 90 sekund wyłącznie szeptem, ale tak wyraźnie, żeby transkrypcja była bezbłędna. Bez przechodzenia w głos.",
+    content: "Wytłumacz, jak podejmujesz najtrudniejsze decyzje w swoim życiu.",
+    contentKind: "prompt",
+  },
+
+  // Tempo — ekstremalne
+  {
+    id: "72",
+    title: "Sprint 220 słów na minutę",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 55,
+    description: "Granica ludzkiej zrozumiałości.",
+    instructions:
+      "Przeczytaj tekst w tempie ok. 220 słów/min zachowując wszystkie końcówki. Jeśli cokolwiek się zlepi — całość od nowa.",
+    content:
+      "Nie ma idealnego momentu, nie ma pełnej informacji, nie ma gwarancji zwrotu, nie ma cudzej zgody, nie ma drugiej takiej okazji — jest tylko decyzja, którą podejmujesz teraz, i konsekwencje, które udźwigniesz jutro.",
+    contentKind: "passage",
+  },
+  {
+    id: "73",
+    title: "Zero wypełniaczy przez 3 minuty",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 60,
+    description: "Najtrudniejszy test dyscypliny mowy.",
+    instructions:
+      "Mów 3 minuty bez ani jednego: eee, yyy, no, znaczy, jakby, w sumie, tak jakby, wiesz. Jedno potknięcie = restart całego ćwiczenia.",
+    content: "Opowiedz o swojej największej porażce zawodowej i o tym, co konkretnie zmieniłeś po niej.",
+    contentKind: "prompt",
+  },
+  {
+    id: "74",
+    title: "Metronom bez dryfu",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 50,
+    description: "Utrzymaj tempo z dokładnością ±5 słów/min.",
+    instructions:
+      "Mów 2 minuty utrzymując dokładnie 140 słów/min. Sprawdź w nagraniu, czy drugie 60 sekund nie przyspieszyło.",
+    content: "Wyjaśnij od podstaw temat, który znasz najlepiej — tak, żeby nadążył ktoś zupełnie zielony.",
+    contentKind: "prompt",
+  },
+  {
+    id: "75",
+    title: "Pauza 4 sekundy",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 50,
+    description: "Cisza, która boli mówiącego, a pracuje na słuchacza.",
+    instructions:
+      "Po każdej z trzech kluczowych tez zrób pełne 4 sekundy ciszy. Nie wypełniaj jej niczym — ani dźwiękiem, ani ruchem.",
+    content: "Przedstaw trzy tezy, w które naprawdę wierzysz, i po każdej daj im wybrzmieć.",
+    contentKind: "prompt",
+  },
+  {
+    id: "76",
+    title: "Cztery biegi w jednym tekście",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 55,
+    description: "100 → 200 → 130 → 90 słów na minutę.",
+    instructions:
+      "Podziel tekst na cztery części i każdą wygłoś w innym tempie: 100, 200, 130, 90 słów/min. Przejścia mają być płynne, nie skokowe.",
+    content:
+      "Na początku wszystko wydawało się spokojne. Potem w ciągu jednego tygodnia posypały się terminy, klienci, zespół i budżet. Zatrzymaliśmy się, spisaliśmy fakty i wybraliśmy jedną rzecz. Ta jedna rzecz uratowała cały rok.",
+    contentKind: "passage",
+  },
+  {
+    id: "77",
+    title: "Odliczanie wsteczne z narracją",
+    category: "Tempo",
+    difficulty: 5,
+    xp: 50,
+    description: "Podzielna uwaga pod presją czasu.",
+    instructions:
+      "Opowiadaj historię i co 15 sekund wtrącaj kolejną liczbę odliczaną od 100 w dół co 7 (100, 93, 86...). Narracja nie może się rozpaść.",
+    content: "Opowiedz historię swojego ostatniego dużego projektu — od pomysłu do rezultatu.",
+    contentKind: "prompt",
+  },
+
+  // Energia — ekstremalna
+  {
+    id: "78",
+    title: "Od szeptu do ryku i z powrotem",
+    category: "Energia",
+    difficulty: 5,
+    xp: 55,
+    description: "Pełny łuk dynamiczny w 60 sekund.",
+    instructions:
+      "Zacznij szeptem, narastaj do maksymalnej projekcji w połowie, wróć do szeptu na końcu. Bez skoków — ciągła krzywa.",
+    content:
+      "Zaczęło się od jednej wątpliwości. Rosło. Rosło aż do dnia, w którym nie dało się już udawać, że wszystko jest w porządku. A potem, po wszystkim, została tylko cisza i decyzja.",
+    contentKind: "passage",
+  },
+  {
+    id: "79",
+    title: "Osiem emocji, jedno zdanie",
+    category: "Energia",
+    difficulty: 5,
+    xp: 55,
+    description: "Pełna paleta barwy głosu.",
+    instructions:
+      "Powiedz zdanie osiem razy: radość, gniew, smutek, ironia, groza, czułość, znużenie, triumf. Każda wersja musi być rozpoznawalna bez kontekstu.",
+    content: "I wtedy zrozumiałem, że to już się nie odstanie.",
+    contentKind: "phrase",
+  },
+  {
+    id: "80",
+    title: "Przemowa na stadion",
+    category: "Energia",
+    difficulty: 5,
+    xp: 60,
+    description: "Maksymalna projekcja bez krzyku i bez zdzierania gardła.",
+    instructions:
+      "90 sekund pełnej projekcji z przepony. Gardło ma pozostać luźne — jeśli chrypisz, robisz to źle. Utrzymaj energię do ostatniego słowa.",
+    content: "Przekonaj tysiąc zmęczonych ludzi, że jutro warto wstać i spróbować jeszcze raz.",
+    contentKind: "prompt",
+  },
+  {
+    id: "81",
+    title: "Zimny spokój pod atakiem",
+    category: "Energia",
+    difficulty: 5,
+    xp: 55,
+    description: "Niski rejestr, wolne tempo, zero obrony.",
+    instructions:
+      "Odpowiedz na ostry zarzut w tonie o oktawę niższym niż zwykle i o 30% wolniej. Bez podnoszenia głosu, bez tłumaczenia się, bez 'przepraszam'.",
+    content: "Ktoś publicznie mówi, że twoja praca z ostatniego półrocza była stratą pieniędzy. Odpowiedz.",
+    contentKind: "prompt",
+  },
+  {
+    id: "82",
+    title: "Energia bez decybeli",
+    category: "Energia",
+    difficulty: 5,
+    xp: 50,
+    description: "Porwij salę na poziomie głośności szeptu.",
+    instructions:
+      "Wygłoś motywującą wypowiedź na stałej, bardzo cichej głośności. Cała energia musi pochodzić z tempa, wysokości i pauz.",
+    content: "Przekonaj kogoś, żeby zaczął dziś rzecz, którą odkłada od trzech lat.",
+    contentKind: "prompt",
+  },
+  {
+    id: "83",
+    title: "Ostatnie 10 sekund",
+    category: "Energia",
+    difficulty: 5,
+    xp: 50,
+    description: "Lądowanie, które zostaje w głowie.",
+    instructions:
+      "Nagraj pięć różnych zakończeń tej samej przemowy, każde dokładnie 10-sekundowe i każde z inną strategią: cisza, pytanie, wezwanie, obraz, powtórzenie.",
+    content: "Zakończ przemowę o tym, dlaczego warto podejmować ryzyko, którego inni unikają.",
+    contentKind: "prompt",
+  },
+
+  // Słownictwo — ekstremalne
+  {
+    id: "84",
+    title: "Wykuj zdanie — Zestaw ekstremalny",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 55,
+    description: "Siedem trudnych słów, jedno spójne zdanie.",
+    instructions:
+      "Zbuduj JEDNO zdanie zawierające wszystkie siedem słów, brzmiące naturalnie. Bez wyliczeń i bez sztucznych wtrąceń.",
+    content: "Zbuduj jedno naturalne zdanie z wszystkimi słowami poniżej.",
+    contentKind: "words",
+    wordList: [
+      "immanentny",
+      "dysonans",
+      "arbitralny",
+      "eskalacja",
+      "przesłanka",
+      "nieodwracalność",
+      "kompromis",
+    ],
+  },
+  {
+    id: "85",
+    title: "Zakaz czasownika 'być'",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 55,
+    description: "Najtrudniejsze ograniczenie językowe.",
+    instructions:
+      "Mów 90 sekund bez żadnej formy czasownika 'być' (jest, są, było, będzie, byłem...). Wymusza mocne czasowniki.",
+    content: "Opisz osobę, która najbardziej wpłynęła na twoje życie.",
+    contentKind: "prompt",
+  },
+  {
+    id: "86",
+    title: "Tylko krótkie słowa",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 50,
+    description: "Maksymalnie dwie sylaby na słowo.",
+    instructions:
+      "Wyjaśnij skomplikowany temat przez 90 sekund używając wyłącznie słów jedno- i dwusylabowych.",
+    content: "Wytłumacz, jak działa procent składany i dlaczego zmienia całe życie finansowe.",
+    contentKind: "prompt",
+  },
+  {
+    id: "87",
+    title: "Trzy poziomy abstrakcji",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 55,
+    description: "Ten sam temat dla dziecka, laika i eksperta.",
+    instructions:
+      "Wygłoś trzy wersje po 40 sekund: dla 7-latka, dla inteligentnego laika, dla eksperta. Bez powtarzania tych samych sformułowań.",
+    content: "Wyjaśnij, na czym polega ryzyko i jak nim zarządzać.",
+    contentKind: "prompt",
+  },
+  {
+    id: "88",
+    title: "Bez zaimka 'ja'",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 50,
+    description: "Przesuń środek ciężkości na odbiorcę.",
+    instructions:
+      "Opowiedz o swoim osiągnięciu przez 90 sekund bez słowa 'ja', 'mnie', 'mój'. Mów o skutkach dla innych.",
+    content: "Opowiedz o rzeczy, z której jesteś najbardziej dumny zawodowo.",
+    contentKind: "prompt",
+  },
+  {
+    id: "89",
+    title: "Alfabetyczne otwarcia",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 55,
+    description: "Ekstremalne obciążenie pamięci roboczej.",
+    instructions:
+      "Wygłoś 10 kolejnych zdań, w których pierwsze słowa zaczynają się na A, B, C, D, E, F, G, H, I, J. Sens musi być zachowany.",
+    content: "Opowiedz spójną historię o dniu, który wszystko zmienił.",
+    contentKind: "prompt",
+  },
+  {
+    id: "90",
+    title: "Definicja bez słowa kluczowego",
+    category: "Słownictwo",
+    difficulty: 5,
+    xp: 50,
+    description: "Tabu na najwyższym poziomie.",
+    instructions:
+      "Wyjaśnij każde pojęcie tak, żeby słuchacz je odgadł — nie używając samego słowa ani jego rdzenia. Po 30 sekund na pojęcie.",
+    content: "Pojęcia do wyjaśnienia bez ich nazwy: zaufanie, negocjacje, wypalenie, przywództwo.",
+    contentKind: "prompt",
+  },
+
+  // Opowiadanie — ekstremalne
+  {
+    id: "91",
+    title: "Historia w 10 sekund",
+    category: "Opowiadanie",
+    difficulty: 5,
+    xp: 55,
+    description: "Maksymalna kompresja narracyjna.",
+    instructions:
+      "Opowiedz pełną historię z haczykiem, konfliktem i puentą w dokładnie 10 sekund. Powtórz z trzema różnymi historiami.",
+    content: "Trzy historie z twojego życia, każda w 10 sekund.",
+    contentKind: "prompt",
+  },
+  {
+    id: "92",
+    title: "Improwizacja bez przygotowania",
+    category: "Opowiadanie",
+    difficulty: 5,
+    xp: 60,
+    description: "Zero sekund na myślenie.",
+    instructions:
+      "Naciśnij nagrywanie i zacznij mówić w tej samej sekundzie. 2 minuty spójnej narracji bez pauzy dłuższej niż 2 sekundy.",
+    content: "Opowiedz historię, która zaczyna się od zdania: 'Nigdy nie planowałem, że tak to się skończy'.",
+    contentKind: "prompt",
+  },
+  {
+    id: "93",
+    title: "Trzy perspektywy jednej sceny",
+    category: "Opowiadanie",
+    difficulty: 5,
+    xp: 55,
+    description: "Ta sama scena, trzy różne prawdy.",
+    instructions:
+      "Opowiedz to samo wydarzenie trzy razy po 40 sekund: z twojej perspektywy, z perspektywy drugiej osoby i jako neutralny obserwator.",
+    content: "Wybierz konflikt, w którym brałeś udział, i opowiedz go z trzech stron.",
+    contentKind: "prompt",
+  },
+  {
+    id: "94",
+    title: "Pięcioaktowa struktura w 3 minuty",
+    category: "Opowiadanie",
+    difficulty: 5,
+    xp: 60,
+    description: "Ekspozycja, zawiązanie, kulminacja, odwrócenie, katharsis.",
+    instructions:
+      "Zbuduj historię z pięcioma wyraźnymi aktami, każdy po ok. 36 sekund. Każde przejście musi być słyszalne w tempie i energii.",
+    content: "Opowiedz historię największej zmiany, jaka zaszła w twoim życiu w ostatnich pięciu latach.",
+    contentKind: "prompt",
+  },
+  {
+    id: "95",
+    title: "Historia z narzuconymi słowami",
+    category: "Opowiadanie",
+    difficulty: 5,
+    xp: 60,
+    description: "Improwizacja z ograniczeniami.",
+    instructions:
+      "Opowiedz 2-minutową, sensowną historię, w której użyjesz wszystkich pięciu słów w podanej kolejności. Bez przygotowania.",
+    content: "Opowiedz historię używając poniższych słów dokładnie w tej kolejności.",
+    contentKind: "words",
+    wordList: ["latarnia", "rachunek", "obietnica", "przeciąg", "wtorek"],
+  },
 ];
 
 // Deterministyczny dzienny wybór na podstawie daty
